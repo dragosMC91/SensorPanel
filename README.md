@@ -5,6 +5,11 @@ Waveshare 7″ 1024×600 secondary display. Recreates the old Windows
 InfoPanel + HWiNFO setup with a small Python collector reading real Linux
 sensors and pushing them to the browser once per second.
 
+![The panel running on the Waveshare 7″](docs/demo.gif)
+
+*Live capture of the real panel — CPU and GPU load, temperatures, power draw,
+VRAM, drive temps and network throughput, all refreshing once a second.*
+
 ```
 collector.py  ──JSON over SSE──▶  index.html in Chrome --kiosk
   reads sensors 1×/sec              binds values to DOM nodes
@@ -106,7 +111,10 @@ dimensions aren't critical — aspect ratio is):
 | `gpu.gif`     | 270×80  | graphics-card icon, next to "GPU STATS" |
 | `shard.gif`   | 468×468 | the magenta bursts in the four corners |
 
-The demo screenshot `real-panel-screenshot.jpeg` lives in `docs/`.
+The demo screenshot `real-panel-screenshot.jpeg` and the animation at the top of
+this README (`demo.gif`) both live in `docs/`. See
+[docs/demo-gif.md](docs/demo-gif.md) for how the GIF was recorded and encoded —
+screen capture on KDE Wayland has a couple of traps worth knowing about.
 
 ## Enabling the ⚠️ sensors
 
