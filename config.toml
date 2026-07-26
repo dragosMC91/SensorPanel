@@ -1,0 +1,94 @@
+# =============================================================================
+#  Sensor-panel configuration  —  discovered on this machine (ASUS X570 /
+#  Ryzen 9 3900X / Radeon RX 6800).  Everything the collector reads is defined
+#  here so the setup stays portable and tweakable.  Re-run discovery
+#  (see README) on a different machine and edit the values below.
+# =============================================================================
+
+[server]
+host     = "127.0.0.1"   # localhost only, never exposed to the network
+port     = 8777
+interval = 1.0           # seconds between sensor readings
+
+# ------------------------------------------------------------------- CPU -----
+[cpu]
+# CPU temperature. Lists = fallback order. k10temp/Tctl is used by default;
+# if you switch to zenpower (see below) it exposes Tdie instead — both are
+# listed so temp works either way. If no listed label matches, the collector
+# falls back to the chip's temp1_input.
+temp_hwmon       = ["k10temp", "zenpower"]
+temp_label       = ["Tctl", "Tdie"]
+# "ACTIVE n/12": a physical core counts as active when either SMT thread
+# exceeds this load %.
+active_threshold = 10.0
+
+# CPU package power.  The Ryzen 3900X k10temp driver does NOT expose power —
+# only zenpower does.  IMPORTANT: zenpower cannot bind while k10temp holds the
+# CPU SMU device, so installing zenpower3 is NOT enough on its own; you must
+# blacklist k10temp (see README "CPU power").  Once zenpower is bound it also
+# provides the temperature (Tdie), covered by the fallback lists above.
+power_hwmon      = ["zenpower"]
+power_attr       = ["power1_input", "power1_average"]
+power_divisor    = 1000000.0     # microwatts -> watts
+
+# ------------------------------------------------------------------- GPU -----
+[gpu]
+# Radeon RX 6800 (Navi 21).  card1 verified via gpu_busy_percent; the collector
+# re-verifies and auto-falls-back if the card index changes.
+card        = "card1"
+hwmon       = "amdgpu"
+temp_label  = "edge"            # temp1 = edge; also available: junction, mem
+power_attr  = "power1_average"  # microwatts -> watts
+clock_attr  = "freq1_input"     # sclk, Hz -> MHz (exposed as gpu.clock in JSON)
+# VRAM comes from mem_info_vram_used / mem_info_vram_total under the card dir.
+
+# ------------------------------------------------------------ Motherboard ----
+[mobo]
+# The ASUS WMI hwmon on this board (TUF GAMING X570-PLUS) exposes NO temperature
+# sensor, so mobo temp is null until the Nuvoton Super-I/O chip driver is loaded.
+# This board is NOT supported by asus-ec-sensors, so use the in-kernel nct6775:
+#     sudo modprobe nct6775
+# If `sensors -j` then shows no nct6798 chip, the ACPI has reserved the I/O
+# region — add the kernel arg  acpi_enforce_resources=lax  and reboot:
+#     (CachyOS/systemd-boot) add it to /boot/loader/entries/*.conf options line,
+#     or (GRUB) to GRUB_CMDLINE_LINUX_DEFAULT then  sudo grub-mkconfig ...
+# Once it appears, set temp_hwmon to the chip name (likely "nct6798") and
+# temp_label to the board sensor (e.g. "SYSTIN").  Leave temp_hwmon empty to
+# keep the field disabled.
+temp_hwmon = "nct6798"
+temp_label = "SYSTIN"
+
+# --------------------------------------------------------------- Network -----
+[network]
+# Empty = auto-detect (default-route interface, else busiest).  Currently
+# resolves to wlan0.  Set explicitly to pin it, e.g. interface = "enp5s0".
+interface = ""
+
+# ---------------------------------------------------------------- Drives -----
+# Four slots matching the labels baked into background.png.  `match` is an
+# UPPER-CASE substring tested against each drive's model string.
+#
+# On this machine:
+#   sdb     KINGSTON SKC600512G          -> "k sk600"     (SATA, needs drivetemp)
+#   nvme1n1 Samsung SSD 970 EVO Plus     -> "s 970 evo p" (NVMe, works now)
+#   nvme0n1 Samsung SSD 980 PRO          -> "s 980 evo p" (NVMe, works now)
+#   (no Samsung 850 EVO present -> "s 850 evo" shows a dash, as on the old panel)
+#
+# NOTE: sda is an "SPCC Solid State Disk" not on the original panel. If you want
+# it shown instead of the absent 850 EVO, change that slot's match to "SPCC".
+
+[[drives]]
+label = "k sk600"
+match = "SKC600"      # Kingston KC600 (SATA) — needs `modprobe drivetemp`
+
+[[drives]]
+label = "s 850 evo"
+match = "SPCC"        # no 850 EVO present; showing the SPCC SATA SSD (sda) instead
+
+[[drives]]
+label = "s 970 evo p"
+match = "970 EVO"     # Samsung 970 EVO Plus (NVMe)
+
+[[drives]]
+label = "s 980 evo p"
+match = "980"         # Samsung 980 PRO (NVMe)

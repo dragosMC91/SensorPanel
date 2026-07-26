@@ -1,0 +1,249 @@
+/* ==========================================================================
+   Sensor panel — 1024x600, no scroll, kiosk.
+   The background art carries all the labels/rings; this stylesheet only
+   positions the live text + animated GIF layers on top of it.
+   ========================================================================== */
+
+/* --- panel font ------------------------------------------------------------
+   The panel renders in "DejaVu Sans" (ships with most Linux distros). Match
+   this font when editing text baked into background.png so they look identical.
+
+   To use a different font, drop the file next to this one, uncomment the
+   @font-face below, and move "PanelFont" to the front of the --font stack.
+@font-face {
+  font-family: "PanelFont";
+  src: url("panelfont.woff2") format("woff2");
+  font-display: block;
+}
+--------------------------------------------------------------------------- */
+
+:root {
+  --font: "DejaVu Sans", "PanelFont", "Rajdhani", "Orbitron", system-ui, sans-serif;
+  --cyan:  #a9f4ff;
+  --glow-cyan: 0 0 6px rgba(120, 235, 255, .9), 0 0 14px rgba(90, 180, 255, .5);
+  --purple: #d9b3ff;
+  --glow-purple: 0 0 6px rgba(200, 130, 255, .9);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1024px;
+  height: 600px;
+  overflow: hidden;
+  background: #000;
+  cursor: none;                 /* kiosk: hide the pointer */
+  font-family: var(--font);
+}
+
+/* fixed 1024x600 stage; scales down proportionally if the viewport is smaller
+   (e.g. previewing in a normal browser window) */
+#stage {
+  position: relative;
+  width: 1024px;
+  height: 600px;
+  overflow: hidden;
+  transform-origin: top left;
+}
+
+#bg {
+  position: absolute;
+  inset: 0;
+  width: 1024px;
+  height: 600px;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---------------------------------------------------------------- decor ---
+   All decorative art uses translate(-50%,-50%) so its left/top is its CENTER.
+   Sizes/positions are first-pass; tune freely (or move the art in Canva). */
+.decor img {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+#center {
+  left: 50.0%;  top: 50.0%;
+  width: 168px; height: 168px;
+  object-fit: cover;
+}
+
+/* Bubbly animated fill inside the ring outlines drawn on the background.
+   app.js drives two custom properties per orb: --lvl (0..1, how loaded) and
+   --heat (0..1, how hot). The orb brightens with load and its magenta is
+   pushed toward red as it heats, so the art reads even from across the room. */
+.sphere {
+  mix-blend-mode: screen;
+  --lvl: .5; --heat: 0;
+  opacity: calc(.74 + .26 * var(--lvl));
+  filter: brightness(calc(.88 + .42 * var(--lvl)))
+          saturate(calc(1 + .45 * var(--heat)))
+          hue-rotate(calc(var(--heat) * 52deg));
+  transition: opacity .9s linear, filter .9s linear;
+}
+.sphere.cpu-usage-orb { left: 10.2%; top: 43.2%; width: 211px; height: 211px; }
+.sphere.cpu-power-orb { left: 25.9%; top: 27.1%; width: 140px; height: 140px; }
+.sphere.cpu-temp-orb  { left: 25.9%; top: 59.1%; width: 140px; height: 140px; }
+.sphere.gpu-usage-orb { left: 89.5%; top: 42.9%; width: 211px; height: 211px; }
+.sphere.gpu-power-orb { left: 74.1%; top: 27.1%; width: 140px; height: 140px; }
+.sphere.gpu-temp-orb  { left: 74.1%; top: 59.1%; width: 140px; height: 140px; }
+
+.icon { mix-blend-mode: screen; }
+/* tucked into empty gaps so they don't cover any text (tune freely) */
+.icon.cpu-icon { left: 32.1%; top: 11.3%; width: 52px; height: 52px; }
+.icon.gpu-icon { left: 65.3%; top: 11.3%; width: 150px; height: 44px; }
+
+.shard { opacity: .55; mix-blend-mode: screen; width: 150px; height: 150px; }
+.shard.shard-l  { left: 3%;  top: 6%; }
+.shard.shard-r  { left: 97%; top: 6%;  transform: translate(-50%, -50%) scaleX(-1); }
+.shard.shard-bl { left: 3%;  top: 94%; transform: translate(-50%, -50%) scaleY(-1); }
+.shard.shard-br { left: 97%; top: 94%; transform: translate(-50%, -50%) scale(-1, -1); }
+
+/* ================================================================ CALIBRATION
+   Live text readouts. `left/top` are percentages of the 1024x600 stage.
+   .r elements are centred on their point (translate -50%,-50%) unless a rule
+   overrides text-align/anchor. Move a number: change its left/top below. */
+.readouts { position: absolute; inset: 0; }
+
+.r {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: .5px;
+  line-height: 1;
+  /* fixed-width digits: a centred readout must not shuffle sideways when it
+     goes 9 -> 10, and "1" must not be narrower than "8" */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  transition: opacity .5s;
+}
+.r .u { font-size: .55em; opacity: .85; margin-left: 3px; }
+
+/* a rate that is genuinely zero recedes instead of shouting "0" */
+.r.idle { opacity: .45; }
+
+/* big usage numbers inside the large spheres */
+.r-big  { font-size: 85px; font-weight: 700; }
+/* 100% — three digits plus the unit no longer fit inside the orb (or the
+   panel, on the right-hand cluster), so the type steps down for that one value */
+.r-big.wide { font-size: 66px; }
+/* smaller numbers inside the small spheres */
+.r-small { font-size: 41.28px; }
+
+/* CPU cluster (left) — same centres as the spheres above */
+#cpu-usage { left: 12.0%; top: 43.5%; }
+#cpu-power { left: 27.4%; top: 27.1%; }
+#cpu-temp  { left: 26.5%; top: 59.1%; }
+/* GPU cluster (right) */
+#gpu-usage { left: 91.0%; top: 43.2%; }
+#gpu-power { left: 74.7%; top: 26.5%; }
+#gpu-temp  { left: 74.4%; top: 59.1%; }
+
+/* clocks — tucked in beside each cluster's header */
+.r-clock   { font-size: 24.84px; }
+#cpu-clock { left: 8.4%; top: 19.1%; }
+#gpu-clock { left: 91.0%; top: 18.2%; }
+
+/* header sub-labels */
+.r-active { left: 21.4%; top: 13.3%; font-size: 30.36px; }
+.r-vram   { left: 99.7%; top: 13.0%; font-size: 27.6px; text-align: right;
+            transform: translate(-100%, -50%); }
+
+/* memory + network (bottom-left) */
+.r-mem { left: 27.6%; top: 78.3%; font-size: 30.36px; display: flex; align-items: center; gap: 8px;
+         transform: translate(0, -50%); }
+.r-mem .bar { display: inline-block; width: 108px; height: 25px; border: 1px solid rgba(150,220,255,.6);
+              border-radius: 3px; overflow: hidden; box-shadow: var(--glow-cyan); }
+.r-mem .bar-fill { display: block; height: 100%; width: 0%;
+                   background: linear-gradient(90deg, #52d0ff, #b06cff); transition: width .5s; }
+
+/* background art shows a green DOWN arrow (top) and pink UP arrow (below) */
+.r-net-down { left: 34.0%; top: 86.6%; font-size: 24.84px; transform: translate(0, -50%); }
+.r-net-up   { left: 34.0%; top: 94.0%; font-size: 24.84px; transform: translate(0, -50%); }
+
+/* disk I/O — bottom row, R (left) and W (right). The R/W tags are CSS-drawn
+   (no slot in the background art yet); if you later bake labels into the art,
+   delete the ::before rule. */
+.r-disk { font-size: 24.84px; transform: translate(0, -50%); }
+.r-disk::before { content: attr(data-label); font-size: .55em; opacity: .85;
+                  margin-right: 5px; color: var(--purple);
+                  text-shadow: var(--glow-purple); }
+#disk-read  { left: 46.1%; top: 95.9%; }
+#disk-write { left: 57.5%; top: 95.8%; }
+
+/* drive readouts (bottom-center) — anchored to the left of each value.
+   temp and space are independent .r elements so each moves on its own. */
+.r-drive-temp, .r-drive-space {
+  font-size: 26.22px; text-align: left; transform: translate(0, -50%);
+  display: flex; align-items: center; gap: 7px;
+}
+.r-drive-temp .dtemp { min-width: 42px; }
+.r-drive-space .bar { display: inline-block; width: 70px; height: 11.7px;
+                border: 1px solid rgba(150,220,255,.6); border-radius: 3px;
+                overflow: hidden; box-shadow: var(--glow-cyan);
+                opacity: 0; transition: opacity .5s; }
+.r-drive-space.has-bar .bar { opacity: 1; }
+.r-drive-space .bar-fill { display: block; height: 100%; width: 0%;
+                     background: linear-gradient(90deg, #52d0ff, #b06cff);
+                     transition: width .5s; }
+/* right-aligned in a fixed box so 7% and 100% end at the same x and the
+   temp column beside them never shifts */
+.r-drive-space .dpct { font-size: 20.7px; min-width: 50px; text-align: right; }
+
+/* Kingston (0) + SP55 (1): space bar only. Bars start clear of the longest
+   drive label ("s 980 EvoPro") baked into the background art. */
+#drive0-space { left: 65.8%; top: 74.5%; }
+#drive1-space { left: 65.8%; top: 80.4%; }
+/* Samsung 970 (2) + 980 (3): temp and space split — tune each freely. */
+#drive2-temp  { left: 79.5%; top: 86.6%; }
+#drive2-space { left: 65.8%; top: 86.6%; }
+#drive3-temp  { left: 79.5%; top: 91.9%; }
+#drive3-space { left: 65.8%; top: 91.9%; }
+
+/* mobo (bottom-right) — clear of the "x570 plus" label above it and of the
+   drive temps to its left, both of which it used to graze */
+.r-mobo { left: 90.3%; top: 90.4%; font-size: 33.12px; }
+
+/* a value the collector reported as null renders dimmed */
+.r.na, .r .na { color: #6a7a90; text-shadow: none; opacity: .7; }
+
+/* ---- stale-data veil ------------------------------------------------------
+   If the collector dies the last snapshot would otherwise sit on screen
+   looking live forever. After 5s without a reading the stage dims, so frozen
+   numbers are never mistaken for current ones. A veil is used rather than a
+   filter/opacity on .decor because either would break the orbs' screen blend. */
+#veil {
+  position: absolute; inset: 0; z-index: 40; pointer-events: none;
+  background: rgba(2, 0, 10, .68);
+  opacity: 0; transition: opacity 1.2s ease;
+}
+body.stale #veil { opacity: 1; }
+
+/* ---- connection status pill (auto-hides when live) ---- */
+#status {
+  position: absolute; left: 8px; bottom: 3px; z-index: 45;
+  font-size: 11px; color: #8fa; opacity: .0; transition: opacity .3s;
+  font-family: monospace; pointer-events: none;
+}
+#status.show { opacity: .8; }
+#status.err  { color: #f88; }
+
+/* ---- calibration grid (toggle with "g") ---- */
+#grid {
+  position: absolute; inset: 0; pointer-events: none; z-index: 50;
+  background-image:
+    repeating-linear-gradient(to right, rgba(0,255,255,.25) 0 1px, transparent 1px 10.24px),
+    repeating-linear-gradient(to bottom, rgba(0,255,255,.25) 0 1px, transparent 1px 6px);
+}
+#grid::after { content: ""; position: absolute; left: 50%; top: 0; width: 1px; height: 100%;
+               background: rgba(255,80,255,.5); }
+body.calibrate .r { outline: 1px dashed rgba(255,255,0,.7); }
+body.calibrate { cursor: crosshair; }

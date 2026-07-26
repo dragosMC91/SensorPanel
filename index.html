@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Sensor Panel</title>
+  <link rel="stylesheet" href="style.css?v=8" />
+</head>
+<body>
+  <!-- ===================================================================== -->
+  <!--  Layer stack (bottom -> top):                                         -->
+  <!--   1. #bg          full-bleed Canva background                         -->
+  <!--   2. .decor       animated GIF art (spheres, chip, icons, shards)     -->
+  <!--   3. .readouts    absolutely-positioned live sensor text              -->
+  <!--  Positions live in style.css under "CALIBRATION"; nudge them there    -->
+  <!--  or move the matching art in Canva.                                   -->
+  <!-- ===================================================================== -->
+  <div id="stage">
+
+    <img id="bg" src="assets/background.png" alt="" />
+
+    <!-- ---- animated art layer ---- -->
+    <div class="decor">
+      <img class="shard shard-l" src="assets/shard.gif" alt="" />
+      <img class="shard shard-r" src="assets/shard.gif" alt="" />
+      <img class="shard shard-bl" src="assets/shard.gif" alt="" />
+      <img class="shard shard-br" src="assets/shard.gif" alt="" />
+
+      <img class="sphere cpu-usage-orb"  src="assets/circle.gif" alt="" />
+      <img class="sphere cpu-power-orb"  src="assets/circle.gif" alt="" />
+      <img class="sphere cpu-temp-orb"   src="assets/circle.gif" alt="" />
+      <img class="sphere gpu-usage-orb"  src="assets/circle.gif" alt="" />
+      <img class="sphere gpu-power-orb"  src="assets/circle.gif" alt="" />
+      <img class="sphere gpu-temp-orb"   src="assets/circle.gif" alt="" />
+
+      <img class="icon cpu-icon" src="assets/cpu.gif" alt="" />
+      <img class="icon gpu-icon" src="assets/gpu.gif" alt="" />
+
+      <img id="center" src="assets/center.gif" alt="" />
+    </div>
+
+    <!-- ---- live readouts ---- -->
+    <div class="readouts">
+      <!-- header sub-labels -->
+      <div class="r r-active"  id="cpu-active">–/12</div>
+      <div class="r r-vram"    id="gpu-vram">–</div>
+
+      <!-- CPU cluster -->
+      <div class="r r-big cpu"      id="cpu-usage">–<span class="u">%</span></div>
+      <div class="r r-small cpu"    id="cpu-power">–<span class="u">W</span></div>
+      <div class="r r-small cpu"    id="cpu-temp">–<span class="u">°C</span></div>
+      <div class="r r-clock cpu"    id="cpu-clock">–<span class="u">MHz</span></div>
+
+      <!-- GPU cluster -->
+      <div class="r r-big gpu"      id="gpu-usage">–<span class="u">%</span></div>
+      <div class="r r-small gpu"    id="gpu-power">–<span class="u">W</span></div>
+      <div class="r r-small gpu"    id="gpu-temp">–<span class="u">°C</span></div>
+      <div class="r r-clock gpu"    id="gpu-clock">–<span class="u">MHz</span></div>
+
+      <!-- memory + network (bottom-left) -->
+      <div class="r r-mem" id="mem">
+        <span id="mem-pct">–%</span>
+        <span class="bar"><span class="bar-fill" id="mem-bar"></span></span>
+      </div>
+      <div class="r r-net-down" id="net-down">– <span class="u">MB/s</span></div>
+      <div class="r r-net-up"   id="net-up">– <span class="u">MB/s</span></div>
+
+      <!-- disk I/O, all physical disks combined (labels "R"/"W" come from CSS
+           ::before since the background art has no slot for these yet) -->
+      <div class="r r-disk" id="disk-read"  data-label="R">– <span class="u">MB/s</span></div>
+      <div class="r r-disk" id="disk-write" data-label="W">– <span class="u">MB/s</span></div>
+
+      <!-- drive readouts (bottom-center).
+           Kingston (0) + SP55 (1) are SATA: space bar only, no temp.
+           Samsung 970 (2) + 980 (3): temp and space are SEPARATE .r elements
+           so each can be moved on its own from the calibration HUD. Every
+           readout carries data-drive = its index in the collector's drives[]. -->
+      <div class="r r-drive-space d0" id="drive0-space" data-drive="0">
+        <span class="bar"><span class="bar-fill"></span></span>
+        <span class="dpct">–</span>
+      </div>
+      <div class="r r-drive-space d1" id="drive1-space" data-drive="1">
+        <span class="bar"><span class="bar-fill"></span></span>
+        <span class="dpct">–</span>
+      </div>
+
+      <div class="r r-drive-temp d2" id="drive2-temp" data-drive="2">
+        <span class="dtemp">–</span>
+      </div>
+      <div class="r r-drive-space d2" id="drive2-space" data-drive="2">
+        <span class="bar"><span class="bar-fill"></span></span>
+        <span class="dpct">–</span>
+      </div>
+
+      <div class="r r-drive-temp d3" id="drive3-temp" data-drive="3">
+        <span class="dtemp">–</span>
+      </div>
+      <div class="r r-drive-space d3" id="drive3-space" data-drive="3">
+        <span class="bar"><span class="bar-fill"></span></span>
+        <span class="dpct">–</span>
+      </div>
+
+      <!-- mobo (bottom-right) -->
+      <div class="r r-mobo" id="mobo">–<span class="u">°C</span></div>
+    </div>
+
+    <!-- dims the whole stage when the collector stops feeding us -->
+    <div id="veil"></div>
+
+    <!-- calibration grid (press "g"); helps line text up with the art -->
+    <div id="grid" hidden></div>
+    <div id="status">connecting…</div>
+  </div>
+
+  <script src="app.js?v=8"></script>
+</body>
+</html>

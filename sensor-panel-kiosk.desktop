@@ -1,0 +1,12 @@
+[Desktop Entry]
+# @PANEL_DIR@ is substituted with this checkout's absolute path when setup.sh
+# copies the file to ~/.config/autostart. Desktop entries don't expand ~ or $HOME
+# in Exec=, so the path has to be written out at install time.
+Type=Application
+Name=Sensor Panel Kiosk
+Comment=Open the hardware sensor panel full-screen on the Waveshare display
+Exec=@PANEL_DIR@/launch-kiosk.sh
+Terminal=false
+X-KDE-autostart-phase=2
+X-GNOME-Autostart-enabled=true
+NoDisplay=false

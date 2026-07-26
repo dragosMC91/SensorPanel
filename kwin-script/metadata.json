@@ -1,0 +1,12 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Id": "sensorpanelcontain",
+        "Name": "Sensor Panel Containment",
+        "Description": "Keeps every window except the sensor-panel kiosk off the Waveshare display.",
+        "Icon": "preferences-system-windows-script-test",
+        "License": "MIT",
+        "EnabledByDefault": true
+    },
+    "X-Plasma-API": "javascript"
+}

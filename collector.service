@@ -1,0 +1,23 @@
+# systemd *user* unit for the sensor-panel collector.
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp collector.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now collector.service
+# Logs:  journalctl --user -u collector.service -f
+#
+# (setup.sh does this for you.)
+
+[Unit]
+Description=Sensor panel metrics collector
+After=graphical-session.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Documents/sensor-panel
+ExecStart=/usr/bin/python3 %h/Documents/sensor-panel/collector.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

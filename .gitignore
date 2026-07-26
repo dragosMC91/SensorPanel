@@ -1,0 +1,17 @@
+# Claude Code local settings — per-machine permissions, not project config.
+.claude/
+
+# Animated art layers are third-party GIFs I didn't create, so they aren't
+# redistributed here. Only background.png (my own Canva layout) ships with the
+# repo. Drop your own center.gif / circle.gif / cpu.gif / gpu.gif / shard.gif
+# into assets/ — see "Assets" in the README for the sizes each one expects.
+assets/*
+!assets/background.png
+
+# Optional custom font referenced by the @font-face in style.css.
+panelfont.woff2
+
+__pycache__/
+*.pyc
+*.bak
+*.bak.*
