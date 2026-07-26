@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=1024, height=600, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Sensor Panel</title>
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body>
   <!-- ===================================================================== -->
@@ -45,21 +45,22 @@
       <div class="r r-active"  id="cpu-active">–/12</div>
       <div class="r r-vram"    id="gpu-vram">–</div>
 
-      <!-- CPU cluster -->
-      <div class="r r-big cpu"      id="cpu-usage">–<span class="u">%</span></div>
-      <div class="r r-small cpu"    id="cpu-power">–<span class="u">W</span></div>
-      <div class="r r-small cpu"    id="cpu-temp">–<span class="u">°C</span></div>
+      <!-- CPU cluster.  The number lives in a fixed-width .v box so its unit
+           can't shuffle sideways when the value goes 9 -> 10 (see style.css). -->
+      <div class="r r-big cpu"      id="cpu-usage" data-wide="3"><span class="v">–</span><span class="u">%</span></div>
+      <div class="r r-small cpu"    id="cpu-power"><span class="v">–</span><span class="u">W</span></div>
+      <div class="r r-small cpu"    id="cpu-temp"><span class="v">–</span><span class="u">°C</span></div>
       <div class="r r-clock cpu"    id="cpu-clock">–<span class="u">MHz</span></div>
 
       <!-- GPU cluster -->
-      <div class="r r-big gpu"      id="gpu-usage">–<span class="u">%</span></div>
-      <div class="r r-small gpu"    id="gpu-power">–<span class="u">W</span></div>
-      <div class="r r-small gpu"    id="gpu-temp">–<span class="u">°C</span></div>
+      <div class="r r-big gpu"      id="gpu-usage" data-wide="3"><span class="v">–</span><span class="u">%</span></div>
+      <div class="r r-small gpu"    id="gpu-power"><span class="v">–</span><span class="u">W</span></div>
+      <div class="r r-small gpu"    id="gpu-temp"><span class="v">–</span><span class="u">°C</span></div>
       <div class="r r-clock gpu"    id="gpu-clock">–<span class="u">MHz</span></div>
 
       <!-- memory + network (bottom-left) -->
       <div class="r r-mem" id="mem">
-        <span id="mem-pct">–%</span>
+        <span id="mem-pct" data-wide="4">–%</span>
         <span class="bar"><span class="bar-fill" id="mem-bar"></span></span>
       </div>
       <div class="r r-net-down" id="net-down">– <span class="u">MB/s</span></div>
@@ -112,6 +113,6 @@
     <div id="status">connecting…</div>
   </div>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

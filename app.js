@@ -97,7 +97,15 @@
   const bindings = new Map();
   let dirty = true;                // something still needs painting this frame
 
-  /* id      element to drive (its first child must be the text node)
+  /* Where a readout's digits go: a fixed-width ".v" box if it has one (so the
+     unit beside it never shifts as digits come and go), else the element's own
+     leading text node. */
+  function setText(b, s) {
+    if (b.v) b.v.textContent = s;
+    else b.el.childNodes[0].nodeValue = s;
+  }
+
+  /* id      element to drive (a ".v" child, or its first child is the text node)
      value   latest reading, or null for "sensor not available"
      fmt     (v) -> string | {text, unit, idle}
      heatOf  (v) -> 0..1, optional */
@@ -105,7 +113,11 @@
     const el = $(id);
     if (!el) return;
     let b = bindings.get(id);
-    if (!b) { b = { el, unit: el.querySelector(".u"), cur: null, target: null }; bindings.set(id, b); }
+    if (!b) {
+      b = { el, v: el.querySelector(".v"), unit: el.querySelector(".u"),
+            widen: +el.dataset.wide || 0, cur: null, target: null };
+      bindings.set(id, b);
+    }
     b.fmt = fmt;
     b.heatOf = heatOf;
     b.target = (value === null || value === undefined || Number.isNaN(value)) ? null : value;
@@ -126,7 +138,7 @@
         el.classList.add("na");
         el.classList.remove("idle");
         paintHeat(el, 0);
-        el.childNodes[0].nodeValue = DASH;
+        setText(b, DASH);
         return;
       }
       el.classList.remove("na");
@@ -136,12 +148,13 @@
       const out = b.fmt(b.cur);
       const obj = typeof out === "object";
       const text = obj ? out.text : out;
-      el.childNodes[0].nodeValue = text;
+      setText(b, text);
       if (b.unit && obj && out.unit) b.unit.textContent = out.unit;
       el.classList.toggle("idle", obj && !!out.idle);
-      // "100%" is wider than the orb it sits in — shrink the big readouts a
-      // notch rather than let the unit slide off the edge of the panel
-      if (el.classList.contains("r-big")) el.classList.toggle("wide", text.length >= 3);
+      // A readout whose box is sized for its everyday width says how many
+      // characters it can hold; past that ("100" in a two-digit box) it goes
+      // .wide and CSS squeezes the digits, leaving the unit where it was.
+      if (b.widen) el.classList.toggle("wide", text.length >= b.widen);
       // Heat follows the reading, not the tween, so colour never lags behind.
       if (b.heatOf) paintHeat(el, b.heatOf(b.target));
     });

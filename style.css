@@ -127,25 +127,51 @@ html, body {
 }
 .r .u { font-size: .55em; opacity: .85; margin-left: 3px; }
 
+/* ---- static units --------------------------------------------------------
+   A unit glyph is a fixed label, not part of the reading, so it must not
+   twitch: digits live in a .v box wide enough for the readout's widest normal
+   value and centre inside it, which nails the "%" / "W" / "°C" beside them to
+   one spot forever. Widths below are measured in DejaVu Sans, where a tabular
+   digit is .6362em and the .5px letter-spacing adds up per character.
+   Readouts anchored on their left edge (memory, drives) get the same guarantee
+   from min-width + text-align:right instead — there the box's right edge, and
+   so the unit, is what stays fixed. */
+.r .v { display: inline-block; text-align: center; }
+
 /* a rate that is genuinely zero recedes instead of shouting "0" */
 .r.idle { opacity: .45; }
 
 /* big usage numbers inside the large spheres */
-.r-big  { font-size: 85px; font-weight: 700; }
-/* 100% — three digits plus the unit no longer fit inside the orb (or the
-   panel, on the right-hand cluster), so the type steps down for that one value */
-.r-big.wide { font-size: 66px; }
+.r-big  { font-size: 93.5px; font-weight: 400; }
+.r-big .v { min-width: 120px; }          /* two digits: 118.98 + letter-spacing */
+/* 100% — three digits burst the box, so for that one value the digits (only
+   the digits: the "%" is pinned) step down to 61.7px, where "100" is 119.3px */
+.r-big.wide .v { font-size: .66em; }
 /* smaller numbers inside the small spheres */
-.r-small { font-size: 41.28px; }
+.r-small { font-size: 49.54px; font-weight: 400; }
+/* Power runs to three digits (230 W), temperature to two — and three digits
+   plus a "W" is the widest thing either small ring has to hold. At 49.54px
+   ("+20%", as the temperatures get) that reading is 1.4px per side WIDER than
+   the ring, so the leading digit would sit on the ring stroke; 46px is the
+   largest size that keeps its ink ~3px clear. */
+#cpu-power, #gpu-power { font-size: 46px; }
+#cpu-power .v, #gpu-power .v { min-width: 90px; }   /* "230" = 89.3px */
+#cpu-temp  .v, #gpu-temp  .v { min-width: 65px; }   /* two digits = 64.0px */
 
-/* CPU cluster (left) — same centres as the spheres above */
-#cpu-usage { left: 12.0%; top: 43.5%; }
-#cpu-power { left: 27.4%; top: 27.1%; }
-#cpu-temp  { left: 26.5%; top: 59.1%; }
+/* CPU / GPU clusters.  A readout is centred on its left/top as a whole — digit
+   box plus unit — so `left` is what parks the unit just inside the ring drawn
+   on the background art. Those rings (measured off background.png) are:
+     usage  centre x 106.8 / 917.0, r 95.2   power/temp  x 264.2 / 759.2, r 62.8
+   With the type 10-20% bigger a readout now nearly fills its ring, so each
+   `left` below puts the unit's right edge ~2px inside the ring line and the
+   digits take whatever room is left. Nudge one and its unit moves with it. */
+#cpu-usage { left: 11.0%; top: 43.5%; }
+#cpu-power { left: 25.7%; top: 27.2%; }
+#cpu-temp  { left: 26.7%; top: 59.1%; }
 /* GPU cluster (right) */
-#gpu-usage { left: 91.0%; top: 43.2%; }
-#gpu-power { left: 74.7%; top: 26.5%; }
-#gpu-temp  { left: 74.4%; top: 59.1%; }
+#gpu-usage { left: 90.1%; top: 43.2%; }
+#gpu-power { left: 74.0%; top: 27.2%; }
+#gpu-temp  { left: 75.1%; top: 59.1%; }
 
 /* clocks — tucked in beside each cluster's header */
 .r-clock   { font-size: 24.84px; }
@@ -158,16 +184,26 @@ html, body {
             transform: translate(-100%, -50%); }
 
 /* memory + network (bottom-left) */
-.r-mem { left: 27.6%; top: 78.3%; font-size: 30.36px; display: flex; align-items: center; gap: 8px;
+.r-mem { left: 27.6%; top: 78.3%; font-size: 36.43px; display: flex; align-items: center; gap: 8px;
          transform: translate(0, -50%); }
-.r-mem .bar { display: inline-block; width: 108px; height: 25px; border: 1px solid rgba(150,220,255,.6);
+/* right-aligned in a fixed box, so the "%" — and the bar after it — hold still
+   when the reading crosses 9 -> 10 (see "static units" above) */
+/* 90px is the measured width of the widest reading ("100%" once .wide has
+   squeezed it); anything narrower is padded, so the "%" cannot drift */
+#mem-pct { display: inline-block; min-width: 90px; text-align: right; }
+/* "100%" is a fourth character; shrink it into the same box rather than let it
+   shove the bar into the drive labels baked in at x=478 */
+#mem-pct.wide { font-size: .77em; }
+/* the bar gives up the width the 20%-larger reading took, so the row still
+   stops clear of those labels */
+.r-mem .bar { display: inline-block; width: 90px; height: 25px; border: 1px solid rgba(150,220,255,.6);
               border-radius: 3px; overflow: hidden; box-shadow: var(--glow-cyan); }
 .r-mem .bar-fill { display: block; height: 100%; width: 0%;
                    background: linear-gradient(90deg, #52d0ff, #b06cff); transition: width .5s; }
 
 /* background art shows a green DOWN arrow (top) and pink UP arrow (below) */
-.r-net-down { left: 34.0%; top: 86.6%; font-size: 24.84px; transform: translate(0, -50%); }
-.r-net-up   { left: 34.0%; top: 94.0%; font-size: 24.84px; transform: translate(0, -50%); }
+.r-net-down { left: 34.0%; top: 86.6%; font-size: 29.81px; transform: translate(0, -50%); }
+.r-net-up   { left: 34.0%; top: 94.0%; font-size: 29.81px; transform: translate(0, -50%); }
 
 /* disk I/O — bottom row, R (left) and W (right). The R/W tags are CSS-drawn
    (no slot in the background art yet); if you later bake labels into the art,
