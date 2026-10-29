@@ -362,7 +362,7 @@ def judge(mode, label, first, second, mon):
                                      f"(e.g. {t['dashSamples'][:4]})"))
         prev = before.get(t["name"])
         if prev and not null_mode and prev["signature"] == t["signature"]:
-            level = "FAIL" if (mode.startswith("load") and not original) else "WARN"
+            level = "FAIL" if (mode in ("load", "peak") and not original) else "WARN"
             problems.append((level, "no readout changed over 3 s -- values are frozen"))
         if t["overflow"]:
             problems.append(("WARN", "document scrolls -- content overflows 1024x600"))

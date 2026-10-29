@@ -10,7 +10,7 @@ description: Validate the sensor-panel design comparison page (designs/index.htm
 the collector serves no directory index) shows the production panel and the
 pure-CSS alternatives side by side as scaled 1024×600 iframes. Mode buttons
 switch the alternatives between live data and the synthetic feeds in
-`designs/shared/feed.js` (`?demo=load`, `?demo=load&t=20000`, `?demo=null`).
+`designs/shared/feed.js` (`?demo=load`, `?demo=peak`, `?demo=null`).
 The original always runs live.
 
 Your job is to prove every tile works in every mode, and to say exactly what
