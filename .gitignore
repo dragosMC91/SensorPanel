@@ -1,5 +1,7 @@
 # Claude Code local settings — per-machine permissions, not project config.
-.claude/
+# Project skills under .claude/skills/ are shared and committed.
+.claude/*
+!.claude/skills/
 
 # Animated art layers are third-party GIFs I didn't create, so they aren't
 # redistributed here. Only background.png (my own Canva layout) ships with the
