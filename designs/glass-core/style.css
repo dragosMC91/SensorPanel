@@ -1,0 +1,488 @@
+/* ==========================================================================
+   Glass Core — 1024x600 kiosk panel.
+   Frosted cards over a drifting aurora. Gauges are drawn entirely by CSS from
+   two registered custom properties set by app.js:
+     --p   0..100   how full a gauge is (transitions, so arcs/bars glide)
+     --c   <color>  accent colour, ice-blue at rest, warming toward amber/red
+     --tc  <color>  text colour, white at rest, warming the same way
+   ========================================================================== */
+
+@property --p  { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --c  { syntax: "<color>";  inherits: true; initial-value: rgb(150, 212, 255); }
+@property --tc { syntax: "<color>";  inherits: true; initial-value: rgb(238, 246, 255); }
+
+:root {
+  --thin:  "Fira Sans Thin", "Fira Sans ExtraLight", "Fira Sans", "DejaVu Sans", sans-serif;
+  --xlite: "Fira Sans ExtraLight", "Fira Sans Light", "Fira Sans", "DejaVu Sans", sans-serif;
+  --lite:  "Fira Sans Light", "Fira Sans", "DejaVu Sans", sans-serif;
+  --book:  "Fira Sans Book", "Fira Sans", "DejaVu Sans", sans-serif;
+  --med:   "Fira Sans Medium", "Fira Sans", "DejaVu Sans", sans-serif;
+
+  --ink:   rgb(238, 246, 255);
+  --label: rgba(196, 218, 240, .66);
+  --faint: rgba(196, 218, 240, .38);
+  --track: rgba(210, 230, 255, .10);
+  --ease:  cubic-bezier(.25, .8, .3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  background: #04060b;
+  cursor: none;
+  color: var(--ink);
+  font-family: var(--book);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: relative;
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  transform-origin: top left;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #0b1220 0%, #05080f 55%, #030409 100%);
+}
+
+/* ================================================================== aurora
+   Each field is a big radial gradient that is already soft at the edges, so
+   no blur filter is ever needed; the only thing that moves is transform. */
+.aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.aurora i { position: absolute; border-radius: 50%; will-change: transform; }
+
+.blob.b1 {
+  width: 860px; height: 620px; left: -260px; top: -200px;
+  background: radial-gradient(closest-side, rgba(40, 110, 255, .50), rgba(40, 110, 255, .19) 55%, transparent);
+  animation: drift1 64s ease-in-out infinite alternate;
+}
+.blob.b2 {
+  width: 820px; height: 600px; right: -260px; top: 40px;
+  background: radial-gradient(closest-side, rgba(20, 200, 210, .36), rgba(20, 200, 210, .13) 55%, transparent);
+  animation: drift2 78s ease-in-out infinite alternate;
+}
+.blob.b3 {
+  width: 900px; height: 520px; left: 160px; bottom: -300px;
+  background: radial-gradient(closest-side, rgba(120, 70, 255, .36), rgba(120, 70, 255, .13) 55%, transparent);
+  animation: drift3 92s ease-in-out infinite alternate;
+}
+
+@keyframes drift1 { from { transform: translate(0, 0) scale(1); }
+                    to   { transform: translate(140px, 60px) scale(1.15); } }
+@keyframes drift2 { from { transform: translate(0, 0) scale(1.1); }
+                    to   { transform: translate(-160px, 40px) scale(.95); } }
+@keyframes drift3 { from { transform: translate(0, 0) scale(1); }
+                    to   { transform: translate(-120px, -60px) scale(1.12); } }
+
+/* heat: amber/red fields that only change opacity (driven by --hx) */
+.warm {
+  --hx: 0;
+  opacity: var(--hx);
+  transition: opacity 2.4s ease;
+  width: 760px; height: 620px; top: -60px;
+}
+.warm.w-cpu {
+  left: -220px;
+  background: radial-gradient(closest-side, rgba(255, 120, 40, .50), rgba(255, 70, 70, .22) 55%, transparent);
+  animation: drift2 70s ease-in-out infinite alternate-reverse;
+}
+.warm.w-gpu {
+  right: -220px;
+  background: radial-gradient(closest-side, rgba(255, 120, 40, .50), rgba(255, 70, 70, .22) 55%, transparent);
+  animation: drift1 70s ease-in-out infinite alternate-reverse;
+}
+
+/* =================================================================== cards
+   Frost is faked: a translucent fill, a specular sheen in the top-left, a 1px
+   inner highlight on the top edge and a soft drop. No backdrop-filter. */
+.card {
+  position: absolute;
+  border-radius: 26px;
+  background:
+    radial-gradient(130% 80% at 0% 0%, rgba(255, 255, 255, .085), transparent 60%),
+    linear-gradient(165deg, rgba(190, 215, 255, .10), rgba(150, 180, 230, .035) 45%, rgba(120, 150, 210, .06));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .20),
+    inset 0 0 0 1px rgba(200, 225, 255, .075),
+    inset 0 -1px 0 rgba(255, 255, 255, .03),
+    0 24px 48px -18px rgba(0, 0, 0, .55);
+}
+/* a hairline of accent colour on the top edge, warms with the card's heat */
+.card::before {
+  content: "";
+  position: absolute; left: 28px; right: 28px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c), transparent);
+  opacity: .55;
+}
+
+#cpu-card { left: 20px;  top: 20px; width: 484px; height: 360px; }
+#gpu-card { left: 520px; top: 20px; width: 484px; height: 360px; }
+#mem-card   { left: 20px;  top: 396px; width: 236px; height: 184px; }
+#io-card    { left: 268px; top: 396px; width: 296px; height: 184px; }
+#store-card { left: 576px; top: 396px; width: 428px; height: 184px; }
+
+/* shared text atoms */
+.lbl {
+  font-family: var(--med);
+  font-size: 13px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--label);
+  white-space: nowrap;
+}
+.u { font-family: var(--book); color: var(--label); white-space: nowrap; }
+.v { display: inline-block; text-align: right; white-space: nowrap; }
+.v.w2 { min-width: 2ch; }
+.v.w3 { min-width: 3ch; }
+.v.w4 { min-width: 4ch; }
+
+/* missing sensor: a dimmed dash, never a blank */
+.na .v, .na.fval, .na.mgb { opacity: .35; }
+.na .u, .na .pc { visibility: hidden; }
+.idle .v { opacity: .45; }
+
+/* ============================================================ primary card */
+.head {
+  position: absolute; left: 28px; right: 22px; top: 20px; height: 26px;
+  display: flex; align-items: baseline; gap: 12px;
+}
+.title {
+  font-family: var(--lite);
+  font-size: 22px;
+  letter-spacing: .32em;
+  color: var(--ink);
+}
+.model { font-family: var(--book); font-size: 14px; color: var(--faint); letter-spacing: .04em; }
+
+/* status chip: NOMINAL / IDLE / WARM / HOT */
+.chip {
+  margin-left: auto;
+  align-self: center;
+  font-family: var(--med);
+  font-size: 13px;
+  letter-spacing: .18em;
+  padding: 4px 12px 4px 26px;
+  border-radius: 99px;
+  color: var(--tc);
+  background: linear-gradient(90deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .03));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+  position: relative;
+  transition: color .8s;
+}
+.chip::before {
+  content: "";
+  position: absolute; left: 11px; top: 50%;
+  width: 7px; height: 7px; margin-top: -3.5px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 8px 1px var(--c);
+}
+
+.card.nodata .chip { color: var(--faint); }
+.card.nodata .chip::before { background: rgba(196, 218, 240, .3); box-shadow: none; }
+.card.hot .chip::before { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+/* ------------------------------------------------------------------- ring
+   270° arc, opening at the bottom. Track, ticks and the lit arc are all
+   masked conic gradients; the glowing leading edge is a dot on a wrapper that
+   rotates with --p. */
+.ring {
+  position: absolute; left: 24px; top: 62px;
+  width: 232px; height: 232px;
+  transition: --p 1s var(--ease), --c 1.2s ease;
+}
+.ring > i { position: absolute; inset: 0; border-radius: 50%; }
+
+.ring .track {
+  background: conic-gradient(from -135deg, var(--track) 0 270deg, transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px), #000 calc(100% - 1.5px), transparent calc(100% - 1px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px), #000 calc(100% - 1.5px), transparent calc(100% - 1px));
+}
+.ring .ticks {
+  inset: 16px;
+  background: repeating-conic-gradient(from -135.4deg, rgba(210, 230, 255, .26) 0 .8deg, transparent .8deg 27deg);
+  -webkit-mask:
+    radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px)),
+    conic-gradient(from -136deg, #000 0 272deg, transparent 0);
+  -webkit-mask-composite: source-in;
+          mask:
+    radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px)),
+    conic-gradient(from -136deg, #000 0 272deg, transparent 0);
+          mask-composite: intersect;
+}
+/* inner hairline circle for depth */
+.ring .ticks::after { content: none; }
+.ring::after {
+  content: ""; position: absolute; inset: 30px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(150, 200, 255, .07), transparent 75%);
+  box-shadow: inset 0 0 0 1px rgba(210, 230, 255, .06);
+}
+.ring .halo {
+  background: conic-gradient(from -135deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--c) 45%, transparent) calc(var(--p) * 2.7deg),
+    transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 26px), rgba(0,0,0,.55) calc(100% - 6px), transparent 100%);
+          mask: radial-gradient(farthest-side, transparent calc(100% - 26px), rgba(0,0,0,.55) calc(100% - 6px), transparent 100%);
+  opacity: .7;
+}
+.ring .arc {
+  background: conic-gradient(from -135deg,
+    color-mix(in srgb, var(--c) 20%, transparent) 0deg,
+    var(--c) calc(var(--p) * 2.7deg),
+    transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5.5px));
+}
+.ring .redge {
+  transform: rotate(calc(-135deg + var(--p) * 2.7deg));
+}
+.ring .redge::after {
+  content: "";
+  position: absolute; left: 50%; top: -2px;
+  width: 10px; height: 10px; margin-left: -5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px var(--c), 0 0 18px 4px color-mix(in srgb, var(--c) 55%, transparent);
+}
+.ring .redge { opacity: 0; transition: opacity .6s; }
+.ring.lit .redge { opacity: 1; }
+.ring .redge::after { animation: breathe 3.2s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: .7; } }
+
+.hero {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-top: 6px;
+}
+.num {
+  position: relative;
+  font-family: var(--thin);
+  font-size: 96px;
+  line-height: .95;
+  letter-spacing: -.02em;
+  color: var(--tc);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--c) 35%, transparent);
+  transition: color 1s;
+}
+.num .v { text-align: center; }
+.num .pc {
+  position: absolute; left: 100%; top: .16em;
+  margin-left: 4px;
+  font-family: var(--lite);
+  font-size: 26px;
+  color: var(--label);
+}
+.num.wide { font-size: 80px; }
+.cap {
+  margin-top: 6px;
+  font-family: var(--med);
+  font-size: 13px; letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding-left: .3em;
+}
+
+/* ------------------------------------------------------------------ stats */
+.stats {
+  position: absolute; left: 286px; right: 28px; top: 66px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.stat { transition: --c 1.2s ease, --tc 1.2s ease; }
+.val {
+  margin-top: 4px;
+  font-family: var(--xlite);
+  font-size: 42px;
+  line-height: 1;
+  color: var(--tc);
+  white-space: nowrap;
+}
+.val .u { font-size: 16px; margin-left: 6px; letter-spacing: .04em; }
+
+/* --------------------------------------------------------------- capsule bar
+   Track + clip-pathed fill + a glowing leading edge carried by translateX on a
+   full-width wrapper (percentages of its own width = the track's width). */
+.bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 99px;
+  background: var(--track);
+  transition: --p 1s var(--ease), --c 1.2s ease;
+}
+.bar .fill {
+  position: absolute; inset: 0;
+  border-radius: 99px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 25%, transparent), var(--c));
+  clip-path: inset(0 calc(100% - var(--p) * 1%) 0 0 round 99px);
+}
+.bar .edge {
+  position: absolute; inset: 0;
+  transform: translateX(calc(var(--p) * 1%));
+  opacity: 0;
+  transition: opacity .6s;
+}
+.bar.lit .edge { opacity: 1; }
+.bar .edge::after {
+  content: "";
+  position: absolute; left: -4px; top: 50%;
+  width: 8px; height: 8px; margin-top: -4px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 5px 1px var(--c), 0 0 12px 3px color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+/* ----------------------------------------------------------------- footer */
+.foot {
+  position: absolute; left: 28px; right: 28px; bottom: 20px; height: 28px;
+  display: flex; align-items: center; gap: 16px;
+  transition: --c 1.2s ease, --tc 1.2s ease;
+}
+.foot .bar { flex: 1; margin-top: 0; }
+.fval {
+  font-family: var(--lite);
+  font-size: 22px;
+  color: var(--tc);
+  white-space: nowrap;
+  min-width: 5.4ch;
+  text-align: right;
+}
+.fval .u { font-size: 14px; margin-left: 4px; }
+.pills { flex: 1; display: flex; gap: 5px; height: 8px; }
+.pills i {
+  flex: 1;
+  border-radius: 99px;
+  background: var(--track);
+  transition: background-color .6s, box-shadow .6s, opacity .6s;
+}
+.pills i.on {
+  background: var(--c);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent);
+}
+
+/* ============================================================ memory card */
+#mem-card { padding: 20px 24px 0 26px; transition: --c 1.2s ease, --tc 1.2s ease; }
+.memrow { margin-top: 12px; display: flex; align-items: flex-end; gap: 14px; }
+.mnum {
+  font-family: var(--thin);
+  font-size: 66px;
+  line-height: .9;
+  color: var(--tc);
+  white-space: nowrap;
+  letter-spacing: -.02em;
+}
+.mnum .u { font-family: var(--lite); font-size: 22px; margin-left: 3px; }
+.mgb {
+  font-family: var(--lite);
+  font-size: 16px;
+  color: var(--label);
+  line-height: 1.25;
+  padding-bottom: 6px;
+  white-space: nowrap;
+}
+.mgb b { display: block; font-weight: normal; color: var(--ink); font-size: 18px; }
+#mem-card .bar { position: absolute; left: 26px; right: 26px; bottom: 30px; margin: 0; }
+
+/* =============================================================== io card */
+#io-card { display: flex; padding: 20px 22px 0 24px; gap: 18px; }
+.iocol { flex: 1; min-width: 0; }
+.iosep { width: 1px; margin: 4px 0 24px; background: linear-gradient(transparent, rgba(210, 230, 255, .14), transparent); }
+.iface { font-family: var(--book); letter-spacing: .04em; text-transform: none; color: var(--faint); margin-left: 4px; }
+.io {
+  margin-top: 18px;
+  display: flex; align-items: baseline;
+  font-family: var(--xlite);
+  font-size: 32px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.io .dir {
+  width: 18px; flex: none;
+  font-family: var(--med);
+  font-size: 14px;
+  color: rgb(150, 212, 255);
+  opacity: .8;
+}
+.io .u { font-size: 13px; margin-left: 5px; letter-spacing: .02em; }
+.io.idle .u { opacity: .5; }
+
+/* ========================================================== storage card */
+#store-card { padding: 18px 24px 0 26px; }
+.shead { display: flex; align-items: center; justify-content: space-between; height: 26px; }
+.board {
+  display: flex; align-items: baseline; gap: 10px;
+  transition: --tc 1.2s ease;
+}
+.bval { font-family: var(--lite); font-size: 22px; color: var(--tc); white-space: nowrap; }
+.bval .u { font-size: 14px; margin-left: 3px; }
+
+.drives { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+.drive {
+  display: grid;
+  grid-template-columns: 104px 1fr 50px 56px;
+  align-items: center;
+  column-gap: 12px;
+  height: 28px;
+}
+.drive .dname {
+  font-family: var(--book);
+  font-size: 14px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--label);
+  white-space: nowrap;
+}
+.drive .bar { margin-top: 0; }
+.drive .dpct, .drive .dtemp {
+  font-family: var(--lite);
+  font-size: 18px;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--tc);
+  transition: --tc 1.2s ease;
+}
+.drive .dpct .u, .drive .dtemp .u { font-size: 13px; margin-left: 2px; }
+
+/* ================================================================== heat
+   Hot cards get a warm rim; app.js already warms the colours. */
+.card.primary { transition: --c 1.2s ease, --tc 1.2s ease, box-shadow 1.2s ease; }
+.card.primary.hot {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 200, 170, .35),
+    inset 0 0 0 1px rgba(255, 110, 90, .28),
+    inset 0 -1px 0 rgba(255, 255, 255, .03),
+    0 24px 48px -18px rgba(0, 0, 0, .55);
+}
+.card.primary.hot::before { opacity: 1; }
+.card.primary.hot .chip {
+  background: linear-gradient(90deg, rgba(255, 90, 80, .28), rgba(255, 90, 80, .12));
+  box-shadow: inset 0 0 0 1px rgba(255, 120, 100, .45);
+}
+
+/* ================================================================= stale
+   No data for 5 s: the glass fogs over (desaturated, dimmed) and the aurora
+   stops moving so nobody trusts frozen numbers. */
+#stale-note {
+  position: absolute; left: 50%; top: 388px;
+  transform: translate(-50%, -50%);
+  font-family: var(--med); font-size: 15px; letter-spacing: .26em; text-transform: uppercase;
+  color: rgba(255, 214, 170, .95);
+  padding: 10px 24px 10px 28px;
+  border-radius: 99px;
+  background: rgba(14, 12, 10, .92);
+  box-shadow: inset 0 0 0 1px rgba(255, 200, 150, .3), 0 10px 40px rgba(0, 0, 0, .6);
+  opacity: 0;
+  transition: opacity .8s;
+  z-index: 5;
+}
+body.stale #stage > :not(#stale-note) { filter: grayscale(.85) brightness(.6); }
+body.stale #stale-note { opacity: 1; }
+body.stale .aurora i,
+body.stale .chip::before,
+body.stale .ring .redge::after { animation-play-state: paused; }
+.mgb .v { text-align: left; }

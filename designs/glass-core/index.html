@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1" />
+  <title>Glass Core</title>
+  <!-- Glass Core: premium-minimal cluster. Frosted cards float over a slow
+       aurora; heat warms the aurora and the accents toward amber/red.
+       Everything is HTML + CSS; app.js only sets text and custom properties. -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+
+    <!-- ---- aurora: pre-blurred colour fields, animated by transform only ---- -->
+    <div class="aurora" aria-hidden="true">
+      <i class="blob b1"></i>
+      <i class="blob b2"></i>
+      <i class="blob b3"></i>
+      <!-- warm fields fade in (opacity only) as each side heats up -->
+      <i class="warm w-cpu" id="warm-cpu"></i>
+      <i class="warm w-gpu" id="warm-gpu"></i>
+    </div>
+
+    <!-- ================================================================ CPU -->
+    <section class="card primary" id="cpu-card">
+      <header class="head">
+        <span class="title">CPU</span>
+        <span class="model">Ryzen 9 3900X</span>
+        <span class="chip" id="cpu-chip">—</span>
+      </header>
+
+      <div class="ring" id="cpu-ring">
+        <i class="track"></i><i class="ticks"></i><i class="halo"></i><i class="arc"></i><i class="redge"></i>
+        <div class="hero">
+          <span class="num" id="cpu-usage"><span class="v">–</span><span class="pc">%</span></span>
+          <span class="cap">Load</span>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" id="cpu-temp-s">
+          <div class="lbl">Temperature</div>
+          <div class="val" id="cpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+          <div class="bar" id="cpu-temp-bar"><i class="fill"></i><i class="edge"></i></div>
+        </div>
+        <div class="stat" id="cpu-power-s">
+          <div class="lbl">Package power</div>
+          <div class="val" id="cpu-power"><span class="v">–</span><span class="u">W</span></div>
+          <div class="bar" id="cpu-power-bar"><i class="fill"></i><i class="edge"></i></div>
+        </div>
+        <div class="stat" id="cpu-clock-s">
+          <div class="lbl">Clock</div>
+          <div class="val" id="cpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+          <div class="bar" id="cpu-clock-bar"><i class="fill"></i><i class="edge"></i></div>
+        </div>
+      </div>
+
+      <footer class="foot" id="cpu-cores-s">
+        <span class="lbl">Active cores</span>
+        <span class="pills" id="cpu-pills"></span>
+        <span class="fval" id="cpu-active">–</span>
+      </footer>
+    </section>
+
+    <!-- ================================================================ GPU -->
+    <section class="card primary" id="gpu-card">
+      <header class="head">
+        <span class="title">GPU</span>
+        <span class="model">Radeon RX 6800</span>
+        <span class="chip" id="gpu-chip">—</span>
+      </header>
+
+      <div class="ring" id="gpu-ring">
+        <i class="track"></i><i class="ticks"></i><i class="halo"></i><i class="arc"></i><i class="redge"></i>
+        <div class="hero">
+          <span class="num" id="gpu-usage"><span class="v">–</span><span class="pc">%</span></span>
+          <span class="cap">Load</span>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" id="gpu-temp-s">
+          <div class="lbl">Temperature</div>
+          <div class="val" id="gpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+          <div class="bar" id="gpu-temp-bar"><i class="fill"></i><i class="edge"></i></div>
+        </div>
+        <div class="stat" id="gpu-power-s">
+          <div class="lbl">Board power</div>
+          <div class="val" id="gpu-power"><span class="v">–</span><span class="u">W</span></div>
+          <div class="bar" id="gpu-power-bar"><i class="fill"></i><i class="edge"></i></div>
+        </div>
+        <div class="stat" id="gpu-clock-s">
+          <div class="lbl">Clock</div>
+          <div class="val" id="gpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+          <div class="bar" id="gpu-clock-bar"><i class="fill"></i><i class="edge"></i></div>
+        </div>
+      </div>
+
+      <footer class="foot" id="gpu-vram-s">
+        <span class="lbl">VRAM</span>
+        <span class="bar" id="gpu-vram-bar"><i class="fill"></i><i class="edge"></i></span>
+        <span class="fval" id="gpu-vram">–</span>
+      </footer>
+    </section>
+
+    <!-- ============================================================= memory -->
+    <section class="card" id="mem-card">
+      <div class="lbl">Memory</div>
+      <div class="memrow">
+        <span class="mnum" id="mem-pct"><span class="v">–</span><span class="u">%</span></span>
+        <span class="mgb" id="mem-gb"><b class="v">–</b><span class="u">of – GB</span></span>
+      </div>
+      <div class="bar wide" id="mem-bar"><i class="fill"></i><i class="edge"></i></div>
+    </section>
+
+    <!-- ================================================================ I/O -->
+    <section class="card" id="io-card">
+      <div class="iocol">
+        <div class="lbl">Network <span class="iface" id="net-iface"></span></div>
+        <div class="io" id="net-down"><span class="dir">↓</span><span class="v w4">–</span><span class="u">MB/s</span></div>
+        <div class="io" id="net-up"><span class="dir">↑</span><span class="v w4">–</span><span class="u">MB/s</span></div>
+      </div>
+      <div class="iosep"></div>
+      <div class="iocol">
+        <div class="lbl">Disk</div>
+        <div class="io" id="disk-read"><span class="dir">R</span><span class="v w4">–</span><span class="u">MB/s</span></div>
+        <div class="io" id="disk-write"><span class="dir">W</span><span class="v w4">–</span><span class="u">MB/s</span></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ storage -->
+    <section class="card" id="store-card">
+      <div class="shead">
+        <span class="lbl">Storage</span>
+        <span class="board" id="mobo-s"><span class="lbl">Board</span><span class="bval" id="mobo"><span class="v w2">–</span><span class="u">°C</span></span></span>
+      </div>
+      <div class="drives" id="drives">
+        <!-- 4 rows built by app.js -->
+      </div>
+    </section>
+
+    <!-- shown only when the collector goes quiet -->
+    <div id="stale-note">Waiting for sensors</div>
+  </div>
+
+  <script src="../shared/feed.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1" />
+  <title>Holo HUD</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<!-- Holo HUD: a projected cockpit display. Every gauge is a stack of masked
+     conic-gradients driven by two custom properties set from app.js:
+       --p  0..1  how full the gauge is      (transitions via @property)
+       --c  color heat colour, cyan -> amber -> red
+     Any element carrying data-g="<name>" receives that gauge's --p / --c, so a
+     ring, its number and its label all warm together. -->
+<div id="stage">
+  <div class="field"></div>
+
+  <div class="content">
+    <!-- ================================================================ top bar -->
+    <header class="top">
+      <div class="brand"><i></i><b>HOLO</b><span>//</span>HUD <em>X570 TELEMETRY</em></div>
+      <div class="rail"><i class="blip"></i></div>
+      <div class="link"><i class="dot" id="dot"></i><span id="link">LINK</span><span class="time" id="time">--:--</span></div>
+    </header>
+
+    <!-- ================================================================ CPU -->
+    <section class="unit cpu" id="cpu-unit">
+      <div class="brk"></div>
+      <div class="tab"><b>CPU</b><span class="micro">RYZEN 9 3900X · 12C/24T</span><span class="warn" id="cpu-warn"></span></div>
+
+      <div class="reactor" data-g="cpu-usage">
+        <div class="halo"></div>
+        <div class="flank t" data-g="cpu-temp"></div>
+        <div class="flank w" data-g="cpu-power"></div>
+        <span class="flab t" data-g="cpu-temp">TEMP</span>
+        <span class="flab w" data-g="cpu-power">PWR</span>
+        <div class="spin a"></div>
+        <div class="ring-glow"></div>
+        <div class="ring"></div>
+        <div class="needle"></div>
+        <div class="spin b"></div>
+        <div class="core"></div>
+        <div class="center">
+          <div class="micro">LOAD</div>
+          <div class="big" id="cpu-usage"><span class="v">–</span><span class="u">%</span></div>
+        </div>
+        <div class="clk" id="cpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" data-g="cpu-temp">
+          <div class="lbl">TEMP<span class="micro">TCTL</span></div>
+          <div class="val" id="cpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+        </div>
+        <div class="stat" data-g="cpu-power">
+          <div class="lbl">POWER<span class="micro">PKG</span></div>
+          <div class="val" id="cpu-power"><span class="v">–</span><span class="u">W</span></div>
+        </div>
+        <div class="stat sm" data-g="cpu-active">
+          <div class="lbl">ACTIVE<span class="micro">CORES</span></div>
+          <div class="val" id="cpu-active"><span class="v">–</span><span class="u">/12</span></div>
+          <div class="pips"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ GPU -->
+    <section class="unit gpu" id="gpu-unit">
+      <div class="brk"></div>
+      <div class="tab"><b>GPU</b><span class="micro">RADEON RX 6800 · 16 GB</span><span class="warn" id="gpu-warn"></span></div>
+
+      <div class="reactor" data-g="gpu-usage">
+        <div class="halo"></div>
+        <div class="flank t" data-g="gpu-temp"></div>
+        <div class="flank w" data-g="gpu-power"></div>
+        <span class="flab t" data-g="gpu-temp">TEMP</span>
+        <span class="flab w" data-g="gpu-power">PWR</span>
+        <div class="spin a"></div>
+        <div class="ring-glow"></div>
+        <div class="ring"></div>
+        <div class="needle"></div>
+        <div class="spin b"></div>
+        <div class="core"></div>
+        <div class="center">
+          <div class="micro">LOAD</div>
+          <div class="big" id="gpu-usage"><span class="v">–</span><span class="u">%</span></div>
+        </div>
+        <div class="clk" id="gpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" data-g="gpu-temp">
+          <div class="lbl">TEMP<span class="micro">EDGE</span></div>
+          <div class="val" id="gpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+        </div>
+        <div class="stat" data-g="gpu-power">
+          <div class="lbl">POWER<span class="micro">BOARD</span></div>
+          <div class="val" id="gpu-power"><span class="v">–</span><span class="u">W</span></div>
+        </div>
+        <div class="stat sm" data-g="gpu-vram">
+          <div class="lbl">VRAM<span class="micro">GDDR6</span></div>
+          <div class="val" id="gpu-vram"><span class="v">–</span><span class="u" id="gpu-vram-tot">/16 GB</span></div>
+          <div class="hbar"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ memory -->
+    <section class="frame mem" data-g="mem">
+      <div class="ftab">MEMORY<span class="micro">DDR4</span></div>
+      <div class="memval" id="mem-pct"><span class="v">–</span><span class="u">%</span></div>
+      <div class="hbar tall"></div>
+      <div class="memgb" id="mem-gb"><span class="v">–</span><span class="u">/ – GB</span></div>
+    </section>
+
+    <!-- ================================================================ I/O -->
+    <section class="frame io">
+      <div class="ftab">I/O<span class="micro" id="iface">NET · DISK</span></div>
+      <div class="iogrid">
+        <div class="cell" data-g="net-down">
+          <div class="lbl"><i class="arr dn"></i>NET DOWN</div>
+          <div class="rate" id="net-down"><span class="v">–</span><span class="u">B/s</span></div>
+          <div class="act"></div>
+        </div>
+        <div class="cell" data-g="net-up">
+          <div class="lbl"><i class="arr up"></i>NET UP</div>
+          <div class="rate" id="net-up"><span class="v">–</span><span class="u">B/s</span></div>
+          <div class="act"></div>
+        </div>
+        <div class="cell" data-g="disk-read">
+          <div class="lbl"><i class="sq"></i>DISK READ</div>
+          <div class="rate" id="disk-read"><span class="v">–</span><span class="u">B/s</span></div>
+          <div class="act"></div>
+        </div>
+        <div class="cell" data-g="disk-write">
+          <div class="lbl"><i class="sq w"></i>DISK WRITE</div>
+          <div class="rate" id="disk-write"><span class="v">–</span><span class="u">B/s</span></div>
+          <div class="act"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ storage + mobo -->
+    <section class="frame store">
+      <div class="ftab">STORAGE<span class="micro">USED · TEMP</span></div>
+      <div class="drives">
+        <div class="drv" id="drive0"><span class="dl">k sk600</span><span class="hbar" data-g="d0s"></span><span class="dp" data-g="d0s">–</span><span class="dt" data-g="d0t">–</span></div>
+        <div class="drv" id="drive1"><span class="dl">s 850 evo</span><span class="hbar" data-g="d1s"></span><span class="dp" data-g="d1s">–</span><span class="dt" data-g="d1t">–</span></div>
+        <div class="drv" id="drive2"><span class="dl">s 970 evo p</span><span class="hbar" data-g="d2s"></span><span class="dp" data-g="d2s">–</span><span class="dt" data-g="d2t">–</span></div>
+        <div class="drv" id="drive3"><span class="dl">s 980 evo p</span><span class="hbar" data-g="d3s"></span><span class="dp" data-g="d3s">–</span><span class="dt" data-g="d3t">–</span></div>
+      </div>
+      <div class="mobo" data-g="mobo">
+        <div class="micro">MOBO</div>
+        <div class="mring"><div class="mval" id="mobo"><span class="v">–</span><span class="u">°C</span></div></div>
+        <div class="micro">X570</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ambient hologram layers (pointer-free, transform/opacity only) -->
+  <div class="scan"></div>
+  <div class="sweep"></div>
+  <div class="lost">◢ SIGNAL LOST · COLLECTOR SILENT ◣</div>
+</div>
+
+<script src="../shared/feed.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

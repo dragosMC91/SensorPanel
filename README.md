@@ -90,6 +90,8 @@ To exit the kiosk: `Alt+F4`, or `pkill -f sensor-panel-chrome`.
 | `collector.service`   | systemd **user** unit to autostart the collector. |
 | `sensor-panel-kiosk.desktop` | Plasma autostart entry for the kiosk. |
 | `setup.sh`            | One-shot installer for all of the above. |
+| `designs/`            | Pure-CSS alternative frontends and a side-by-side comparison page — see [Design alternatives](#design-alternatives). |
+| `.claude/skills/validate-designs/` | Claude Code skill + script that checks the comparison page in headless Chrome. |
 
 ## Assets
 
@@ -308,3 +310,31 @@ vkcube   # or glxgears / any game      # GPU usage / clock / temp / power move
 dd if=/dev/zero of=~/big.tmp bs=1M count=4096 oflag=direct && rm ~/big.tmp   # drive + I/O
 ```
 Watch the panel (or `curl .../metrics`) reflect the changes within ~1 s.
+
+## Design alternatives
+
+`designs/` holds five candidate replacements for the production panel, each
+pure HTML/CSS (no images, SVG or canvas) with JS only binding data:
+`holo-hud`, `circuit-core`, `glass-core`, `neon-grid` and `tactical`. The
+production frontend is untouched; each design's `style.css` header explains
+how it draws.
+
+Compare them next to the original at
+<http://localhost:8777/designs/index.html> (the bare `/designs/` URL 404s).
+The **Data** buttons switch the alternatives between live readings and
+synthetic feeds — **Load sweep** (idle → flat-out over 40 s), **Peak** (held
+near maximum) and **Sensors missing** (every value null). Any design also
+opens on its own, e.g. `designs/glass-core/index.html?demo=peak`.
+
+All designs read data through `designs/shared/feed.js`, never their own
+`EventSource`: Chrome allows six connections per host, so on the comparison
+page the tiles share one stream from the parent page instead of each holding
+a connection open.
+
+To check the page end to end — every mode, every tile, network stalls,
+console errors, unbound values, plus screenshots — run `/validate-designs` in
+Claude Code, or the script directly:
+
+```bash
+python3 -I .claude/skills/validate-designs/validate.py --out /tmp/designs-validation
+```

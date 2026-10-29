@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Circuit Core</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<!-- Circuit Core: the production purple/cyan circuit-board panel rebuilt with
+     nothing but elements + CSS. Layers (bottom -> top): field glow, circuit
+     traces (left half drawn once, mirrored for the right), chip die, liquid
+     orbs, header readouts, bottom bay. Geometry is in px on a 1024x600 stage. -->
+<div id="stage">
+
+  <div class="field"></div>
+  <div class="halo"><i></i></div>
+
+  <!-- ===================================================== circuit traces -->
+  <!-- Drawn for the left half; the second copy is mirrored about x=512 so
+       both clusters wire into the chip and pulses always flow inward. -->
+  <div class="traces">
+    <!-- edge neon -->
+    <i class="neon" style="top:192px;width:74px"></i>
+    <i class="neon" style="top:212px;width:44px"></i>
+    <i class="neon" style="top:266px;width:66px"></i>
+    <i class="neon" style="top:290px;width:38px"></i>
+    <i class="neon" style="top:312px;width:56px"></i>
+    <!-- faint field ribbons -->
+    <i class="t f tr" style="left:0;top:354px;width:200px;height:58px"></i>
+    <i class="t f tr" style="left:0;top:366px;width:188px;height:46px"></i>
+    <i class="t f tr" style="left:0;top:378px;width:176px;height:34px"></i>
+    <i class="t f h" style="left:0;top:106px;width:150px"></i>
+    <i class="t f h" style="left:0;top:117px;width:134px"></i>
+    <i class="t f h" style="left:0;top:128px;width:118px"></i>
+    <i class="via f" style="left:150px;top:106px"></i>
+    <i class="via f" style="left:134px;top:117px"></i>
+    <i class="via f" style="left:118px;top:128px"></i>
+    <!-- main wiring -->
+    <i class="t h" style="left:218px;top:231px;width:209px"></i>
+    <i class="t h" style="left:218px;top:249px;width:209px"></i>
+    <i class="t tr" style="left:346px;top:160px;width:47px;height:41px"></i>
+    <i class="t h" style="left:391px;top:199.5px;width:36px"></i>
+    <i class="t br" style="left:346px;top:271px;width:47px;height:52px"></i>
+    <i class="t h" style="left:391px;top:271px;width:36px"></i>
+    <i class="t tr hdr" style="left:24px;top:50px;width:382px;height:131px"></i>
+    <i class="t h" style="left:404.5px;top:179.5px;width:23px"></i>
+    <i class="t bl" style="left:414px;top:0;width:13px;height:171px"></i>
+    <i class="t tl" style="left:400px;top:290px;width:27px;height:122px"></i>
+    <i class="t tl" style="left:410px;top:300px;width:17px;height:112px"></i>
+    <i class="via" style="left:218px;top:231px"></i>
+    <i class="via" style="left:218px;top:249px"></i>
+    <i class="via" style="left:346px;top:160px"></i>
+    <i class="via" style="left:346px;top:322px"></i>
+    <!-- light pulses heading for the chip -->
+    <i class="pulse" style="left:218px;top:231px;--len:209px;--d:3.4s;--dl:0s"></i>
+    <i class="pulse" style="left:218px;top:249px;--len:209px;--d:4.2s;--dl:1.7s"></i>
+    <i class="pulse" style="left:24px;top:50px;--len:382px;--d:6.5s;--dl:.9s"></i>
+    <i class="pulse dim" style="left:0;top:366px;--len:188px;--d:5.2s;--dl:2.4s"></i>
+    <i class="pulse dim" style="left:0;top:117px;--len:134px;--d:5.8s;--dl:3.5s"></i>
+  </div>
+  <div class="traces mirror">
+    <i class="neon" style="top:192px;width:74px"></i>
+    <i class="neon" style="top:212px;width:44px"></i>
+    <i class="neon" style="top:266px;width:66px"></i>
+    <i class="neon" style="top:290px;width:38px"></i>
+    <i class="neon" style="top:312px;width:56px"></i>
+    <i class="t f tr" style="left:0;top:354px;width:200px;height:58px"></i>
+    <i class="t f tr" style="left:0;top:366px;width:188px;height:46px"></i>
+    <i class="t f tr" style="left:0;top:378px;width:176px;height:34px"></i>
+    <i class="t f h" style="left:0;top:106px;width:150px"></i>
+    <i class="t f h" style="left:0;top:117px;width:134px"></i>
+    <i class="t f h" style="left:0;top:128px;width:118px"></i>
+    <i class="via f" style="left:150px;top:106px"></i>
+    <i class="via f" style="left:134px;top:117px"></i>
+    <i class="via f" style="left:118px;top:128px"></i>
+    <i class="t h" style="left:218px;top:231px;width:209px"></i>
+    <i class="t h" style="left:218px;top:249px;width:209px"></i>
+    <i class="t tr" style="left:346px;top:160px;width:47px;height:41px"></i>
+    <i class="t h" style="left:391px;top:199.5px;width:36px"></i>
+    <i class="t br" style="left:346px;top:271px;width:47px;height:52px"></i>
+    <i class="t h" style="left:391px;top:271px;width:36px"></i>
+    <i class="t tr hdr" style="left:24px;top:50px;width:382px;height:131px"></i>
+    <i class="t h" style="left:404.5px;top:179.5px;width:23px"></i>
+    <i class="t bl" style="left:414px;top:0;width:13px;height:171px"></i>
+    <i class="t tl" style="left:400px;top:290px;width:27px;height:122px"></i>
+    <i class="t tl" style="left:410px;top:300px;width:17px;height:112px"></i>
+    <i class="via" style="left:218px;top:231px"></i>
+    <i class="via" style="left:218px;top:249px"></i>
+    <i class="via" style="left:346px;top:160px"></i>
+    <i class="via" style="left:346px;top:322px"></i>
+    <i class="pulse" style="left:218px;top:231px;--len:209px;--d:3.8s;--dl:.6s"></i>
+    <i class="pulse" style="left:218px;top:249px;--len:209px;--d:3.1s;--dl:2.2s"></i>
+    <i class="pulse" style="left:24px;top:50px;--len:382px;--d:7s;--dl:3.1s"></i>
+    <i class="pulse dim" style="left:0;top:366px;--len:188px;--d:5.6s;--dl:.4s"></i>
+    <i class="pulse dim" style="left:0;top:117px;--len:134px;--d:6.2s;--dl:1.2s"></i>
+  </div>
+
+  <!-- data bus above and below the die -->
+  <div class="bus top">
+    <i style="left:6px;top:64px"></i><i style="left:18px;top:22px"></i>
+    <i style="left:30px;top:88px"></i><i style="left:42px;top:8px"></i>
+    <i style="left:54px;top:48px"></i><i style="left:65px;top:14px"></i>
+    <i style="left:76px;top:70px"></i><i style="left:88px;top:4px"></i>
+    <i style="left:100px;top:40px"></i><i style="left:112px;top:96px"></i>
+    <i style="left:124px;top:26px"></i>
+    <b class="vpulse" style="left:42px;top:8px;--len:143px;--d:4.6s;--dl:.3s"></b>
+    <b class="vpulse" style="left:88px;top:4px;--len:147px;--d:5.4s;--dl:2.6s"></b>
+    <b class="vpulse" style="left:124px;top:26px;--len:125px;--d:6s;--dl:4.1s"></b>
+  </div>
+  <div class="bus bottom">
+    <i style="left:6px;height:40px"></i><i style="left:18px;height:91px"></i>
+    <i style="left:30px;height:62px"></i><i style="left:42px;height:91px"></i>
+    <i style="left:54px;height:30px"></i><i style="left:65px;height:91px"></i>
+    <i style="left:76px;height:52px"></i><i style="left:88px;height:91px"></i>
+    <i style="left:100px;height:36px"></i><i style="left:112px;height:91px"></i>
+    <i style="left:124px;height:70px"></i>
+    <b class="vpulse up" style="left:18px;top:0;--len:91px;--d:4.4s;--dl:1.1s"></b>
+    <b class="vpulse up" style="left:112px;top:0;--len:91px;--d:5.2s;--dl:3.3s"></b>
+  </div>
+
+  <!-- ========================================================== chip die -->
+  <div class="chip" id="chip">
+    <div class="pins"></div>
+    <div class="die">
+      <div class="scan"></div>
+      <div class="chip-tag">RYZEN 9</div>
+      <div class="cores" id="cores">
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="chip-tag sub">3900X · 12C</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ headers -->
+  <header class="head cpu">
+    <div class="title"><span class="ico-cpu"></span><h1>CPU STATS</h1></div>
+    <div class="stats">
+      <div class="stat"><span class="lab">ACTIVE</span>
+        <span class="r num" id="cpu-active"><span class="v">–</span><span class="u">/12</span></span></div>
+      <div class="stat"><span class="lab">CLOCK</span>
+        <span class="r num" id="cpu-clock"><span class="v">–</span><span class="u">MHz</span></span></div>
+    </div>
+  </header>
+  <header class="head gpu">
+    <div class="title"><h1>GPU STATS</h1><span class="ico-gpu"><i></i><i></i></span></div>
+    <div class="stats">
+      <div class="stat"><span class="lab">VRAM</span>
+        <span class="r num" id="gpu-vram"><span class="v">–</span><span class="u">GB</span></span>
+        <span class="mini" id="vram-bar"><i></i></span></div>
+      <div class="stat"><span class="lab">CLOCK</span>
+        <span class="r num" id="gpu-clock"><span class="v">–</span><span class="u">MHz</span></span></div>
+    </div>
+  </header>
+
+  <!-- ============================================================== orbs -->
+  <!-- --fill (0..1) sets the liquid level, --heat (0..1) its colour. -->
+  <div class="orb big" id="orb-cpu-usage" style="left:18px;top:140px">
+    <div class="ticks"></div>
+    <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+    <div class="ring"></div><div class="alarm"></div>
+    <div class="val r" id="cpu-usage" data-wide="3"><span class="v">–</span><span class="u">%</span></div>
+    <div class="cap">LOAD</div>
+  </div>
+  <div class="orb sm" id="orb-cpu-temp" style="left:222px;top:98px">
+    <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+    <div class="ring"></div><div class="alarm"></div>
+    <div class="val r" id="cpu-temp" data-wide="3"><span class="v">–</span><span class="u">°C</span></div>
+    <div class="cap">TEMP</div>
+  </div>
+  <div class="orb sm" id="orb-cpu-power" style="left:222px;top:260px">
+    <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+    <div class="ring"></div><div class="alarm"></div>
+    <div class="val r" id="cpu-power"><span class="v">–</span><span class="u">W</span></div>
+    <div class="cap">POWER</div>
+  </div>
+
+  <div class="orb big" id="orb-gpu-usage" style="left:806px;top:140px">
+    <div class="ticks rev"></div>
+    <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+    <div class="ring"></div><div class="alarm"></div>
+    <div class="val r" id="gpu-usage" data-wide="3"><span class="v">–</span><span class="u">%</span></div>
+    <div class="cap">LOAD</div>
+  </div>
+  <div class="orb sm" id="orb-gpu-temp" style="left:678px;top:98px">
+    <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+    <div class="ring"></div><div class="alarm"></div>
+    <div class="val r" id="gpu-temp" data-wide="3"><span class="v">–</span><span class="u">°C</span></div>
+    <div class="cap">TEMP</div>
+  </div>
+  <div class="orb sm" id="orb-gpu-power" style="left:678px;top:260px">
+    <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+    <div class="ring"></div><div class="alarm"></div>
+    <div class="val r" id="gpu-power"><span class="v">–</span><span class="u">W</span></div>
+    <div class="cap">POWER</div>
+  </div>
+
+  <!-- ========================================================= bottom bay -->
+  <div class="bay-edge"></div>
+  <section class="bay">
+    <!-- memory: a vertical liquid tank -->
+    <div class="sec mem">
+      <div class="tank" id="mem-tank">
+        <div class="liq"><div class="lvl"><i class="w w1"></i><i class="w w2"></i><b class="bub b1"></b><b class="bub b2"></b><b class="bub b3"></b></div></div>
+      </div>
+      <div class="mem-txt">
+        <div class="lab">MEMORY</div>
+        <div class="r num big" id="mem-pct" data-wide="3"><span class="v">–</span><span class="u">%</span></div>
+        <div class="r num gb" id="mem-gb"><span class="v">–</span><span class="u">GB</span></div>
+        <div class="dimlab">of <span id="mem-total">–</span> GB</div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- network + disk throughput, unit follows the magnitude -->
+    <div class="sec io">
+      <div class="grp"><span class="lab">NETWORK</span><span class="dimlab" id="net-iface"></span></div>
+      <div class="row"><span class="arw dn"></span><span class="tag">DOWN</span>
+        <span class="r num" id="net-down"><span class="v">–</span><span class="u">B/s</span></span></div>
+      <div class="row"><span class="arw up"></span><span class="tag">UP</span>
+        <span class="r num" id="net-up"><span class="v">–</span><span class="u">B/s</span></span></div>
+      <div class="grp"><span class="lab">DISK I/O</span></div>
+      <div class="row"><span class="arw rd"></span><span class="tag">READ</span>
+        <span class="r num" id="disk-read"><span class="v">–</span><span class="u">B/s</span></span></div>
+      <div class="row"><span class="arw wr"></span><span class="tag">WRITE</span>
+        <span class="r num" id="disk-write"><span class="v">–</span><span class="u">B/s</span></span></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- drives -->
+    <div class="sec drives">
+      <div class="grp"><span class="lab">DRIVES</span><span class="col c1">USED</span><span class="col c2">TEMP</span></div>
+      <div class="drv" id="drv0"><span class="dl">–</span><span class="bar"><i></i></span>
+        <span class="r num pct" id="d0-pct"><span class="v">–</span><span class="u">%</span></span>
+        <span class="r num tmp" id="d0-temp"><span class="v">–</span><span class="u">°C</span></span></div>
+      <div class="drv" id="drv1"><span class="dl">–</span><span class="bar"><i></i></span>
+        <span class="r num pct" id="d1-pct"><span class="v">–</span><span class="u">%</span></span>
+        <span class="r num tmp" id="d1-temp"><span class="v">–</span><span class="u">°C</span></span></div>
+      <div class="drv" id="drv2"><span class="dl">–</span><span class="bar"><i></i></span>
+        <span class="r num pct" id="d2-pct"><span class="v">–</span><span class="u">%</span></span>
+        <span class="r num tmp" id="d2-temp"><span class="v">–</span><span class="u">°C</span></span></div>
+      <div class="drv" id="drv3"><span class="dl">–</span><span class="bar"><i></i></span>
+        <span class="r num pct" id="d3-pct"><span class="v">–</span><span class="u">%</span></span>
+        <span class="r num tmp" id="d3-temp"><span class="v">–</span><span class="u">°C</span></span></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- motherboard -->
+    <div class="sec mobo">
+      <div class="mobo-txt"><div class="mobo-name">MOBO</div><div class="dimlab">X570</div><div class="dimlab">plus</div></div>
+      <div class="dial" id="mobo-dial">
+        <div class="r num" id="mobo"><span class="v">–</span><span class="u">°C</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="nosig">NO SIGNAL · COLLECTOR STALLED</div>
+</div>
+
+<script src="../shared/feed.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+/* ==========================================================================
+   Neon Grid — synthwave / outrun sensor panel. 1024x600, pure CSS.
+   Scenery sits underneath; data lives on dark glass panels on top so the
+   numbers always win over the background.
+
+   Driven from app.js:
+     #stage  --heat  0..1  hottest of CPU/GPU temp -> sky + sun + floor warm up
+     .panel  --ph    0..1  panel's own heat -> red outline fades in
+     meters  --lit   0..1  fill fraction (VU, pips, mini bars, drive bars)
+     .rd.heated --hc       value colour once it leaves the calm range
+   ========================================================================== */
+
+@property --heat { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lit  { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --ph   { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+:root {
+  --font: "Fira Sans Condensed", "DejaVu Sans Condensed", "DejaVu Sans", sans-serif;
+  --cyan: #3ff0ff;
+  --pink: #ff3fd8;
+  --violet: #9d7bff;
+  --orange: #ff9a3c;
+  --ink: #f6f1ff;
+  --label: #c9b8f2;
+  --dim: #6c5c8a;
+  --horizon: 330px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1024px;
+  height: 600px;
+  overflow: hidden;
+  background: #05010d;
+  cursor: none;
+  font-family: var(--font);
+  color: var(--ink);
+}
+
+#stage {
+  position: relative;
+  width: 1024px;
+  height: 600px;
+  overflow: hidden;
+  transform-origin: top left;
+  background: #05010d;
+  --heat: 0;
+}
+
+/* ============================================================== scenery == */
+.scene { position: absolute; inset: 0; pointer-events: none; }
+
+.sky { position: absolute; inset: 0 0 calc(600px - var(--horizon)) 0; }
+.sky-cool {
+  background: linear-gradient(180deg,
+    #04011a 0%, #0f0533 35%, #2a0a58 66%, #6a1a86 86%, #c23aa8 97%, #ff7ad8 100%);
+}
+.sky-hot {
+  background: linear-gradient(180deg,
+    #0e0205 0%, #34060f 35%, #7a1018 64%, #c82a14 86%, #ff6a1a 97%, #ffc25a 100%);
+  opacity: var(--heat);
+  transition: opacity 3s ease;
+}
+
+/* stars: one 2px dot, many static box-shadows; the second layer twinkles
+   by opacity only. */
+.stars { position: absolute; left: 0; top: 0; width: 2px; height: 2px; border-radius: 50%; }
+.stars.s1 {
+  background: #fff; opacity: .75;
+  box-shadow:
+    402px 34px #fff, 455px 88px #ffd6f6, 520px 20px #fff, 588px 70px #c9f6ff,
+    630px 118px #fff, 396px 132px #e9dcff, 470px 150px #fff, 612px 26px #ffe9fb,
+    548px 112px #fff, 420px 186px #ffd6f6, 642px 176px #fff, 500px 60px #c9f6ff,
+    380px 250px #fff, 640px 262px #e9dcff, 12px 324px #fff, 1012px 324px #fff;
+}
+.stars.s2 {
+  width: 3px; height: 3px; background: #fff;
+  box-shadow:
+    432px 58px #fff, 574px 44px #ffd6f6, 606px 150px #c9f6ff, 402px 98px #fff,
+    488px 118px #fff, 536px 160px #e9dcff;
+  animation: twinkle 3.6s ease-in-out infinite alternate;
+}
+@keyframes twinkle { from { opacity: .15; } to { opacity: .95; } }
+
+/* sun: banded disc clipped at the horizon. Two discs crossfade with heat —
+   cool is a violet/blue moon-sun, hot is a blazing orange-red. */
+.sun {
+  position: absolute;
+  left: 387px; top: 156px;
+  width: 250px; height: calc(var(--horizon) - 156px);
+  overflow: hidden;
+}
+.disc {
+  position: absolute; left: 0; top: 0;
+  width: 250px; height: 250px; border-radius: 50%;
+  -webkit-mask-image: linear-gradient(180deg,
+    #000 0 36%, transparent 36% 38.5%, #000 38.5% 45%, transparent 45% 48.5%,
+    #000 48.5% 54%, transparent 54% 58.5%, #000 58.5% 62.5%, transparent 62.5% 68%,
+    #000 68%);
+          mask-image: linear-gradient(180deg,
+    #000 0 36%, transparent 36% 38.5%, #000 38.5% 45%, transparent 45% 48.5%,
+    #000 48.5% 54%, transparent 54% 58.5%, #000 58.5% 62.5%, transparent 62.5% 68%,
+    #000 68%);
+}
+.disc-cool {
+  background: linear-gradient(180deg, #ffd0f4 0%, #ff7ae0 22%, #c24bff 46%, #6a3bff 68%);
+  box-shadow: 0 0 60px rgba(214, 90, 255, .55);
+}
+.disc-hot {
+  background: linear-gradient(180deg, #fff6b0 0%, #ffd03a 20%, #ff7a1a 44%, #ff2a2a 68%);
+  opacity: var(--heat);
+  transition: opacity 3s ease;
+}
+
+/* mountain silhouettes framing the sun */
+.ridge { position: absolute; left: 0; width: 1024px; }
+.ridge-back {
+  top: 270px; height: 61px;
+  background: linear-gradient(180deg, #5a1c86, #2a0b48);
+  clip-path: polygon(0 100%, 0 70%, 8% 40%, 14% 62%, 22% 30%, 30% 58%, 36% 45%, 40% 70%,
+    43% 52%, 47% 82%, 53% 82%, 57% 48%, 61% 66%, 66% 22%, 72% 56%, 79% 36%, 86% 64%,
+    93% 30%, 100% 60%, 100% 100%);
+}
+.ridge-front {
+  top: 292px; height: 39px;
+  background: linear-gradient(180deg, #1d0736, #0c0218);
+  clip-path: polygon(0 100%, 0 60%, 6% 30%, 12% 70%, 20% 40%, 28% 75%, 34% 35%, 39% 62%,
+    42% 78%, 45% 90%, 55% 90%, 58% 70%, 61% 40%, 65% 72%, 71% 20%, 78% 66%, 85% 45%,
+    92% 70%, 100% 40%, 100% 100%);
+}
+
+/* the floor: one rotated plane of neon lines, scrolled toward the viewer by
+   a transform animation (compositor only, no repaint). */
+.floor {
+  position: absolute; left: 0; right: 0; top: var(--horizon); bottom: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a0846 0%, #12031f 40%, #07010f 100%);
+  perspective: 210px;
+  perspective-origin: 50% 40px;
+}
+.plane {
+  position: absolute;
+  left: -1024px; width: 3072px;
+  bottom: 0; height: 1500px;
+  transform-origin: 50% 100%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 63, 216, .95) 0 3px, transparent 3px 96px) 50% 0,
+    repeating-linear-gradient(0deg,  rgba(255, 63, 216, .95) 0 3px, transparent 3px 60px);
+  animation: run 1.6s linear infinite;
+  will-change: transform;
+}
+@keyframes run {
+  from { transform: rotateX(79deg) translateY(0); }
+  to   { transform: rotateX(79deg) translateY(60px); }
+}
+.floor-hot {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 90% at 50% 0%, rgba(255, 110, 20, .6), transparent 70%);
+  opacity: var(--heat);
+  transition: opacity 3s ease;
+}
+.haze {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #3a0c5a 0, rgba(58, 12, 90, .7) 14px, rgba(30, 6, 50, 0) 70px);
+}
+
+.horizon {
+  position: absolute; left: 0; right: 0; top: calc(var(--horizon) - 1px); height: 2px;
+  background: linear-gradient(90deg, transparent, #ff6ae6 20%, #fff 50%, #ff6ae6 80%, transparent);
+  box-shadow: 0 0 12px 2px rgba(255, 90, 220, .8);
+  animation: pulse 5s ease-in-out infinite alternate;
+}
+@keyframes pulse { from { opacity: .65; } to { opacity: 1; } }
+
+.scan {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 1px, transparent 1px 3px);
+}
+
+/* =============================================================== panels == */
+.panel {
+  position: absolute;
+  padding: 10px 15px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(18, 6, 44, .84), rgba(9, 3, 24, .88));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--acc) 75%, transparent),
+    inset 0 0 26px -8px color-mix(in srgb, var(--acc) 55%, transparent),
+    0 0 22px -6px var(--acc);
+  --ph: 0;
+}
+/* neon top rail */
+.panel::before {
+  content: ""; position: absolute; left: 18px; right: 18px; top: -1px; height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--acc) 15%, var(--pink) 60%, var(--orange) 90%, transparent);
+  box-shadow: 0 0 10px var(--acc);
+}
+/* heat outline: fades in as the panel's own readings go hot */
+.panel::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 2px #ff4a26, inset 0 0 34px -6px rgba(255, 60, 30, .75), 0 0 26px rgba(255, 60, 20, .7);
+  opacity: var(--ph);
+  transition: opacity 1.2s ease;
+}
+
+.top  { top: 12px; width: 360px; height: 306px; }
+.cpu  { left: 14px;  --acc: var(--cyan); }
+.gpu  { left: 650px; --acc: var(--pink); }
+.low  { top: 348px; height: 240px;
+  background: linear-gradient(180deg, rgba(18, 6, 44, .8), rgba(9, 3, 24, .74)); }
+.mem  { left: 14px;  width: 320px; --acc: var(--violet); }
+.io   { left: 344px; width: 336px; --acc: var(--cyan); }
+.drives { left: 690px; width: 320px; --acc: var(--pink); }
+
+header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; height: 50px; padding-top: 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--acc) 28%, transparent);
+}
+.low header { height: 36px; }
+
+/* chrome display type */
+.chrome {
+  font-family: var(--font);
+  font-style: italic; font-weight: 900;
+  font-size: 46px; line-height: 1; letter-spacing: .02em;
+  padding-right: .12em;
+  background: linear-gradient(180deg,
+    #ffffff 0%, #d8f6ff 28%, #7fc8ff 49%, #1a0a3a 51%, #5a2a8a 58%, #ff8ae6 78%, #ffe6fa 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--acc, #ff3fd8) 70%, transparent));
+}
+.chrome.sm { font-size: 26px; }
+.model {
+  font-size: 13px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--acc) 70%, #fff);
+  opacity: .9;
+}
+
+.lbl {
+  font-size: 13px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--label); line-height: 1;
+}
+
+/* ------------------------------------------------------------ readouts -- */
+.rd {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; line-height: 1;
+  color: var(--ink);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--acc) 75%, transparent);
+  transition: color .6s ease;
+}
+.rd .v { display: inline-block; min-width: calc(var(--w) * 1ch); text-align: right; }
+.rd .u {
+  font-weight: 500; margin-left: .06em;
+  color: color-mix(in srgb, var(--acc) 55%, #fff);
+}
+.rd.heated { color: var(--hc); text-shadow: 0 0 12px color-mix(in srgb, var(--hc) 80%, transparent); }
+.rd.heated .u { color: var(--hc); }
+.rd.na .v, .rd.na .u { color: var(--dim); }
+.rd.na { text-shadow: none; opacity: .6; }
+.rd.idle .v { opacity: .55; }
+
+.xl  { font-size: 86px; font-weight: 600; letter-spacing: -.01em; }
+.xl .u { font-size: 36px; font-weight: 600; }
+.lg  { font-size: 52px; font-weight: 600; }
+.lg .u { font-size: 24px; }
+.lg2 { font-size: 64px; font-weight: 600; }
+.lg2 .u { font-size: 28px; }
+.md  { font-size: 30px; font-weight: 600; }
+.md .u { font-size: 15px; }
+.sm  { font-size: 24px; font-weight: 600; }
+.sm .u { font-size: 14px; }
+.iov { font-size: 30px; font-weight: 600; }
+.iov .u { font-size: 15px; }
+
+/* -------------------------------------------------------------- hero ---- */
+.hero { display: flex; justify-content: space-between; height: 106px; padding-top: 10px; }
+.hero-load, .hero-temp { display: flex; flex-direction: column; }
+.hero-load .rd { margin: auto 0 -4px -6px; }
+.hero-temp { width: 132px; padding-bottom: 4px; }
+.hero-temp .rd { margin-top: auto; }
+.hero-temp .mini { margin-top: 10px; }
+
+/* ----------------------------------------------------------- meters ---- */
+/* segmented VU: full spectrum gradient, masked into segments; a dark
+   shutter (.off) covers the unlit tail and slides via transform. */
+.vu, .pips, .dbar {
+  position: relative; display: block; overflow: hidden;
+  background: linear-gradient(90deg, #2de2ff 0%, #6f6bff 30%, #ff3fd8 60%, #ff8a2a 82%, #ff2a2a 100%);
+  -webkit-mask: linear-gradient(90deg, #000 calc(100% - 3px), transparent 0) 0 0 / calc(100% / var(--n)) 100% repeat-x;
+          mask: linear-gradient(90deg, #000 calc(100% - 3px), transparent 0) 0 0 / calc(100% / var(--n)) 100% repeat-x;
+}
+.vu .off, .pips .off, .dbar .off {
+  position: absolute; inset: 0;
+  background: rgba(22, 8, 46, .88);
+  transform-origin: 100% 50%;
+  transform: scaleX(calc(1 - var(--lit)));
+  transition: transform .45s cubic-bezier(.2, .8, .2, 1);
+}
+.vu { height: 30px; margin-top: 12px; border-radius: 2px; }
+.pips { width: 96px; height: 7px; margin-top: 7px;
+  -webkit-mask-size: 8px 100%; mask-size: 8px 100%; }
+.pips .off { background: rgba(22, 8, 46, .8); }
+
+.mini {
+  position: relative; height: 4px; overflow: hidden; border-radius: 2px;
+  background: rgba(255, 255, 255, .1);
+}
+.mini i {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--acc) 60%, transparent), var(--acc));
+  transform-origin: 0 50%;
+  transform: scaleX(var(--lit));
+  transition: transform .6s cubic-bezier(.2, .8, .2, 1);
+}
+.mini.heated i { background: linear-gradient(90deg, color-mix(in srgb, var(--acc) 50%, transparent), var(--hc)); }
+.na > .off, .mini.na i { transform: scaleX(1); }
+.mini.na i { transform: scaleX(0); }
+
+/* ------------------------------------------------------------- cells ---- */
+.cells {
+  display: grid; grid-template-columns: 84px 1fr 1.18fr; gap: 12px;
+  margin-top: 18px;
+}
+.cell .lbl { margin-bottom: 7px; }
+.cell .mini { margin-top: 8px; }
+
+/* ----------------------------------------------------------- centre ----- */
+.mobo {
+  position: absolute; left: 384px; top: 20px; width: 256px;
+  text-align: center; --acc: var(--violet);
+}
+.brand { font-size: 52px; display: inline-block; }
+.mobo-row {
+  margin-top: 6px;
+  display: inline-flex; align-items: baseline; gap: 10px;
+  padding: 6px 14px 7px;
+  border-radius: 6px;
+  background: rgba(10, 3, 26, .6);
+  box-shadow: inset 0 0 0 1px rgba(157, 123, 255, .5);
+}
+
+/* ------------------------------------------------------------ memory ---- */
+.mem-hero { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; height: 74px; }
+.mem-hero .rd.lg2 { margin-left: -4px; }
+.mem-gb { text-align: right; padding-bottom: 6px; }
+.mem-gb .lbl { margin-bottom: 7px; }
+.mem .vu { height: 34px; margin-top: 20px; }
+.ticks {
+  display: flex; justify-content: space-between; margin-top: 7px;
+  font-size: 13px; font-weight: 500; color: var(--label); opacity: .7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------- I/O ---- */
+.io { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.io-row {
+  position: relative;
+  display: grid; grid-template-columns: 22px 1fr; column-gap: 6px; align-items: end;
+  margin-top: 16px;
+}
+.io-row .mini { grid-column: 1 / -1; margin-top: 8px; }
+.io-val .lbl { margin-bottom: 6px; }
+.arrow {
+  font-size: 15px; font-weight: 800; line-height: 1; padding-bottom: 6px; text-align: center;
+  color: var(--cyan); text-shadow: 0 0 8px var(--cyan);
+}
+.arrow.up { color: var(--pink); text-shadow: 0 0 8px var(--pink); }
+.arrow.rd-a { color: var(--cyan); }
+.arrow.wr-a { color: var(--orange); text-shadow: 0 0 8px var(--orange); }
+
+/* ------------------------------------------------------------ drives ---- */
+.drive {
+  display: grid; grid-template-columns: 1fr 60px 50px 48px; column-gap: 8px;
+  align-items: center; height: 46px;
+  border-top: 1px solid rgba(255, 63, 216, .18);
+}
+.drive:first-of-type { border-top: 0; }
+.dname {
+  font-size: 16px; font-weight: 500; letter-spacing: .04em; color: var(--label);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dbar { width: 60px; height: 14px; }
+.dbar .off { background: rgba(40, 16, 70, .8); }
+.dpct, .dtemp { font-size: 21px; font-weight: 600; text-align: right; }
+.dpct .u, .dtemp .u { font-size: 14px; }
+
+/* ============================================================ states ==== */
+/* stale: collector stopped — desaturate and dim everything, freeze the
+   scenery, show a blinking SIGNAL LOST plate over the sun. */
+.lost {
+  position: absolute; left: 392px; top: 214px; width: 240px; height: 54px;
+  display: grid; place-items: center;
+  border-radius: 6px;
+  background: rgba(6, 2, 14, .85);
+  box-shadow: inset 0 0 0 1px #ff4a26;
+  font-size: 22px; font-weight: 800; font-style: italic; letter-spacing: .2em;
+  text-transform: uppercase; color: #ff6a4a;
+  opacity: 0; visibility: hidden;
+}
+body.stale .lost { visibility: visible; animation: blink 1.4s steps(2, jump-none) infinite; }
+@keyframes blink { from { opacity: 1; } to { opacity: .35; } }
+body.stale .panel, body.stale .mobo { filter: grayscale(1) brightness(.55); }
+body.stale .scene { opacity: .35; }
+body.stale .plane, body.stale .stars, body.stale .horizon { animation-play-state: paused; }

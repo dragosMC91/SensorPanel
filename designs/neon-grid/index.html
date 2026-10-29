@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Neon Grid</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Neon Grid: synthwave / outrun. Layer stack (bottom -> top):
+       sky (cool + hot crossfade) . stars . sun . mountains . scrolling grid
+       floor . horizon line . scanlines . data panels . stale veil.
+       Everything is HTML + CSS; app.js only sets text, classes and custom
+       properties (--lit for meters, --hc for heat colour, --heat/--ph for
+       the scene and panel outlines). -->
+  <div id="stage">
+
+    <!-- ================================================ scenery ======== -->
+    <div class="scene" aria-hidden="true">
+      <div class="sky sky-cool"></div>
+      <div class="sky sky-hot"></div>
+      <div class="stars s1"></div>
+      <div class="stars s2"></div>
+      <div class="sun"><div class="disc disc-cool"></div><div class="disc disc-hot"></div></div>
+      <div class="ridge ridge-back"></div>
+      <div class="ridge ridge-front"></div>
+      <div class="floor">
+        <div class="plane"></div>
+        <div class="floor-hot"></div>
+        <div class="haze"></div>
+      </div>
+      <div class="horizon"></div>
+      <div class="scan"></div>
+    </div>
+
+    <!-- ================================================ CPU =========== -->
+    <section class="panel top cpu" id="p-cpu">
+      <header>
+        <h2 class="chrome">CPU</h2>
+        <span class="model">Ryzen 9 3900X</span>
+      </header>
+      <div class="hero">
+        <div class="hero-load">
+          <div class="lbl">Load</div>
+          <div class="rd xl" id="cpu-usage"><span class="v" style="--w:2">–</span><span class="u">%</span></div>
+        </div>
+        <div class="hero-temp">
+          <div class="lbl">Temp</div>
+          <div class="rd lg" id="cpu-temp"><span class="v" style="--w:2">–</span><span class="u">°C</span></div>
+          <div class="mini" id="cpu-temp-m"><i></i></div>
+        </div>
+      </div>
+      <div class="vu" id="cpu-vu" style="--n:30"><i class="off"></i></div>
+      <div class="cells">
+        <div class="cell">
+          <div class="lbl">Power</div>
+          <div class="rd md" id="cpu-power"><span class="v" style="--w:3">–</span><span class="u">W</span></div>
+          <div class="mini" id="cpu-power-m"><i></i></div>
+        </div>
+        <div class="cell">
+          <div class="lbl">Clock</div>
+          <div class="rd md" id="cpu-clock"><span class="v" style="--w:4">–</span><span class="u">MHz</span></div>
+          <div class="mini" id="cpu-clock-m"><i></i></div>
+        </div>
+        <div class="cell">
+          <div class="lbl">Active</div>
+          <div class="rd md" id="cpu-active"><span class="v" style="--w:2">–</span><span class="u">/12</span></div>
+          <div class="pips" id="cpu-active-m" style="--n:12"><i class="off"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ GPU =========== -->
+    <section class="panel top gpu" id="p-gpu">
+      <header>
+        <h2 class="chrome">GPU</h2>
+        <span class="model">Radeon RX 6800</span>
+      </header>
+      <div class="hero">
+        <div class="hero-load">
+          <div class="lbl">Load</div>
+          <div class="rd xl" id="gpu-usage"><span class="v" style="--w:2">–</span><span class="u">%</span></div>
+        </div>
+        <div class="hero-temp">
+          <div class="lbl">Temp</div>
+          <div class="rd lg" id="gpu-temp"><span class="v" style="--w:2">–</span><span class="u">°C</span></div>
+          <div class="mini" id="gpu-temp-m"><i></i></div>
+        </div>
+      </div>
+      <div class="vu" id="gpu-vu" style="--n:30"><i class="off"></i></div>
+      <div class="cells">
+        <div class="cell">
+          <div class="lbl">Power</div>
+          <div class="rd md" id="gpu-power"><span class="v" style="--w:3">–</span><span class="u">W</span></div>
+          <div class="mini" id="gpu-power-m"><i></i></div>
+        </div>
+        <div class="cell">
+          <div class="lbl">Clock</div>
+          <div class="rd md" id="gpu-clock"><span class="v" style="--w:4">–</span><span class="u">MHz</span></div>
+          <div class="mini" id="gpu-clock-m"><i></i></div>
+        </div>
+        <div class="cell">
+          <div class="lbl">VRAM</div>
+          <div class="rd md" id="gpu-vram"><span class="v" style="--w:4">–</span><span class="u">/16 GB</span></div>
+          <div class="mini" id="gpu-vram-m"><i></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ centre ======== -->
+    <div class="mobo" id="p-mobo">
+      <div class="chrome brand">X570</div>
+      <div class="mobo-row">
+        <span class="lbl">Mobo</span>
+        <span class="rd sm" id="mobo"><span class="v" style="--w:2">–</span><span class="u">°C</span></span>
+      </div>
+    </div>
+
+    <!-- ================================================ memory ======== -->
+    <section class="panel low mem" id="p-mem">
+      <header><h3 class="chrome sm">Memory</h3><span class="model" id="mem-total">DDR4</span></header>
+      <div class="mem-hero">
+        <div class="rd lg2" id="mem-pct"><span class="v" style="--w:2">–</span><span class="u">%</span></div>
+        <div class="mem-gb">
+          <div class="lbl">In use</div>
+          <div class="rd sm" id="mem-gb"><span class="v" style="--w:4">–</span><span class="u">GB</span></div>
+        </div>
+      </div>
+      <div class="vu" id="mem-vu" style="--n:29"><i class="off"></i></div>
+      <div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    </section>
+
+    <!-- ================================================ I/O =========== -->
+    <section class="panel low io" id="p-io">
+      <div class="io-col">
+        <header><h3 class="chrome sm">Network</h3><span class="model" id="net-iface">–</span></header>
+        <div class="io-row">
+          <span class="arrow down">▼</span>
+          <div class="io-val">
+            <div class="lbl">Down</div>
+            <div class="rd iov" id="net-down"><span class="v" style="--w:4">–</span><span class="u">MB/s</span></div>
+          </div>
+          <div class="mini" id="net-down-m"><i></i></div>
+        </div>
+        <div class="io-row">
+          <span class="arrow up">▲</span>
+          <div class="io-val">
+            <div class="lbl">Up</div>
+            <div class="rd iov" id="net-up"><span class="v" style="--w:4">–</span><span class="u">MB/s</span></div>
+          </div>
+          <div class="mini" id="net-up-m"><i></i></div>
+        </div>
+      </div>
+      <div class="io-col">
+        <header><h3 class="chrome sm">Disk</h3><span class="model">total</span></header>
+        <div class="io-row">
+          <span class="arrow rd-a">R</span>
+          <div class="io-val">
+            <div class="lbl">Read</div>
+            <div class="rd iov" id="disk-read"><span class="v" style="--w:4">–</span><span class="u">MB/s</span></div>
+          </div>
+          <div class="mini" id="disk-read-m"><i></i></div>
+        </div>
+        <div class="io-row">
+          <span class="arrow wr-a">W</span>
+          <div class="io-val">
+            <div class="lbl">Write</div>
+            <div class="rd iov" id="disk-write"><span class="v" style="--w:4">–</span><span class="u">MB/s</span></div>
+          </div>
+          <div class="mini" id="disk-write-m"><i></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================ drives ======== -->
+    <section class="panel low drives" id="p-drives">
+      <header><h3 class="chrome sm">Storage</h3><span class="model">used · temp</span></header>
+      <div class="drive" id="drive0"><span class="dname">k sk600</span><span class="dbar" style="--n:10"><i class="off"></i></span><span class="rd dpct"><span class="v" style="--w:3">–</span><span class="u">%</span></span><span class="rd dtemp"><span class="v" style="--w:2">–</span><span class="u">°C</span></span></div>
+      <div class="drive" id="drive1"><span class="dname">s 850 evo</span><span class="dbar" style="--n:10"><i class="off"></i></span><span class="rd dpct"><span class="v" style="--w:3">–</span><span class="u">%</span></span><span class="rd dtemp"><span class="v" style="--w:2">–</span><span class="u">°C</span></span></div>
+      <div class="drive" id="drive2"><span class="dname">s 970 evo p</span><span class="dbar" style="--n:10"><i class="off"></i></span><span class="rd dpct"><span class="v" style="--w:3">–</span><span class="u">%</span></span><span class="rd dtemp"><span class="v" style="--w:2">–</span><span class="u">°C</span></span></div>
+      <div class="drive" id="drive3"><span class="dname">s 980 evo p</span><span class="dbar" style="--n:10"><i class="off"></i></span><span class="rd dpct"><span class="v" style="--w:3">–</span><span class="u">%</span></span><span class="rd dtemp"><span class="v" style="--w:2">–</span><span class="u">°C</span></span></div>
+    </section>
+
+    <!-- shown only when body.stale -->
+    <div class="lost" aria-hidden="true"><span>Signal lost</span></div>
+  </div>
+
+  <script src="../shared/feed.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
