@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1" />
+  <title>Pulse</title>
+  <!-- Pulse: trend-first panel. Every reading carries its last two minutes of
+       history, so one glance says spiking, steady or cooling down. Charts are
+       plain divs clipped by clip-path polygons that app.js computes from a
+       rolling buffer; there is no SVG, canvas or image anywhere. -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+
+    <!-- ================================================================ bar -->
+    <header id="bar">
+      <span class="brand"><i class="beat" id="beat"></i>Pulse</span>
+      <span class="sub">1 s samples · 2 min window</span>
+      <span class="legend">
+        <span><i class="key k-load"></i>load</span>
+        <span><i class="key k-temp"></i>temperature</span>
+        <span><i class="key k-in"></i>in</span>
+        <span><i class="key k-out"></i>out</span>
+      </span>
+      <span class="clock" id="clock"></span>
+    </header>
+
+    <!-- ================================================================ CPU -->
+    <section class="panel unit" id="cpu">
+      <header class="head">
+        <span class="title">CPU</span>
+        <span class="model">Ryzen 9 3900X · 12C/24T</span>
+        <span class="chip" id="cpu-chip">NO DATA</span>
+      </header>
+      <div class="body">
+        <div class="hero">
+          <div class="num" id="cpu-usage"><span class="v">–</span><span class="u">%</span></div>
+          <div class="cap">Load</div>
+          <div class="agg">
+            <div class="row"><span class="k">Peak</span><span class="pv" id="cpu-peak">–</span></div>
+            <div class="ago" id="cpu-peak-ago"></div>
+            <div class="row"><span class="k">Avg</span><span class="pv" id="cpu-avg">–</span></div>
+          </div>
+        </div>
+        <div class="chart big" id="cpu-chart">
+          <span class="ax l" style="--y:75">75</span><span class="ax l" style="--y:50">50</span><span class="ax l" style="--y:25">25</span>
+          <span class="ax r" style="--y:75">80°</span><span class="ax r" style="--y:50">60°</span><span class="ax r" style="--y:25">40°</span>
+        </div>
+      </div>
+      <div class="taxis"><span>2 min ago</span><span>1 min</span><span>now</span></div>
+      <div class="stats">
+        <div class="stat" id="cpu-temp-s">
+          <div class="lbl">Temp<span class="note" id="cpu-temp-trend"></span></div>
+          <div class="val" id="cpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+          <div class="chart spark" id="cpu-temp-spark"></div>
+        </div>
+        <div class="stat" id="cpu-power-s">
+          <div class="lbl">Power<span class="note" id="cpu-power-peak"></span></div>
+          <div class="val" id="cpu-power"><span class="v">–</span><span class="u">W</span></div>
+          <div class="chart spark" id="cpu-power-spark"></div>
+        </div>
+        <div class="stat" id="cpu-clock-s">
+          <div class="lbl">Clock</div>
+          <div class="val" id="cpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+          <div class="chart spark" id="cpu-clock-spark"></div>
+        </div>
+        <div class="stat" id="cpu-active-s">
+          <div class="lbl">Cores</div>
+          <div class="val" id="cpu-active"><span class="v">–</span><span class="u">/12</span></div>
+          <div class="chart spark" id="cpu-active-spark"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ GPU -->
+    <section class="panel unit" id="gpu">
+      <header class="head">
+        <span class="title">GPU</span>
+        <span class="model">Radeon RX 6800 · 16 GB</span>
+        <span class="chip" id="gpu-chip">NO DATA</span>
+      </header>
+      <div class="body">
+        <div class="hero">
+          <div class="num" id="gpu-usage"><span class="v">–</span><span class="u">%</span></div>
+          <div class="cap">Load</div>
+          <div class="agg">
+            <div class="row"><span class="k">Peak</span><span class="pv" id="gpu-peak">–</span></div>
+            <div class="ago" id="gpu-peak-ago"></div>
+            <div class="row"><span class="k">Avg</span><span class="pv" id="gpu-avg">–</span></div>
+          </div>
+        </div>
+        <div class="chart big" id="gpu-chart">
+          <span class="ax l" style="--y:75">75</span><span class="ax l" style="--y:50">50</span><span class="ax l" style="--y:25">25</span>
+          <span class="ax r" style="--y:75">80°</span><span class="ax r" style="--y:50">60°</span><span class="ax r" style="--y:25">40°</span>
+        </div>
+      </div>
+      <div class="taxis"><span>2 min ago</span><span>1 min</span><span>now</span></div>
+      <div class="stats">
+        <div class="stat" id="gpu-temp-s">
+          <div class="lbl">Temp<span class="note" id="gpu-temp-trend"></span></div>
+          <div class="val" id="gpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+          <div class="chart spark" id="gpu-temp-spark"></div>
+        </div>
+        <div class="stat" id="gpu-power-s">
+          <div class="lbl">Power<span class="note" id="gpu-power-peak"></span></div>
+          <div class="val" id="gpu-power"><span class="v">–</span><span class="u">W</span></div>
+          <div class="chart spark" id="gpu-power-spark"></div>
+        </div>
+        <div class="stat" id="gpu-clock-s">
+          <div class="lbl">Clock</div>
+          <div class="val" id="gpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+          <div class="chart spark" id="gpu-clock-spark"></div>
+        </div>
+        <div class="stat" id="gpu-vram-s">
+          <div class="lbl">VRAM</div>
+          <div class="val" id="gpu-vram"><span class="v">–</span><span class="u">/16 GB</span></div>
+          <div class="chart spark" id="gpu-vram-spark"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= memory -->
+    <section class="panel small" id="mem">
+      <header class="shead"><span class="lbl">Memory</span><span class="tag">DDR4</span></header>
+      <div class="num mid" id="mem-pct"><span class="v">–</span><span class="u">%</span></div>
+      <div class="gb" id="mem-gb"><span class="v">–</span><span class="u">of 62.7 GB</span></div>
+      <div class="chart mini" id="mem-chart"></div>
+    </section>
+
+    <!-- ============================================================ network -->
+    <section class="panel small io" id="net">
+      <header class="shead"><span class="lbl">Network</span><span class="tag" id="net-iface">wlan0</span></header>
+      <div class="pair">
+        <div class="rate in" id="net-down"><i class="dir">↓</i><span class="v">–</span><span class="u">MB/s</span></div>
+        <div class="rate out" id="net-up"><i class="dir">↑</i><span class="v">–</span><span class="u">MB/s</span></div>
+      </div>
+      <div class="chart mirror" id="net-chart">
+        <span class="scale top" id="net-scale-in"></span>
+        <span class="scale bot" id="net-scale-out"></span>
+      </div>
+    </section>
+
+    <!-- =============================================================== disk -->
+    <section class="panel small io" id="disk">
+      <header class="shead"><span class="lbl">Disk</span><span class="tag">all drives</span></header>
+      <div class="pair">
+        <div class="rate in" id="disk-read"><i class="dir">R</i><span class="v">–</span><span class="u">MB/s</span></div>
+        <div class="rate out" id="disk-write"><i class="dir">W</i><span class="v">–</span><span class="u">MB/s</span></div>
+      </div>
+      <div class="chart mirror" id="disk-chart">
+        <span class="scale top" id="disk-scale-in"></span>
+        <span class="scale bot" id="disk-scale-out"></span>
+      </div>
+    </section>
+
+    <!-- ============================================================ storage -->
+    <section class="panel small" id="store">
+      <header class="shead">
+        <span class="lbl">Storage</span>
+        <span class="board" id="mobo-s"><span class="tag">X570 board</span><span class="bval" id="mobo"><span class="v">–</span><span class="u">°C</span></span></span>
+      </header>
+      <div class="dhead"><span>used</span><span>temp</span></div>
+      <div class="drives" id="drives"><!-- 4 rows built by app.js --></div>
+    </section>
+
+    <div id="stale-note">Waiting for sensors</div>
+  </div>
+
+  <script src="../shared/feed.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

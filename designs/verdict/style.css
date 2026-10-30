@@ -1,0 +1,302 @@
+/* ==========================================================================
+   Verdict — 1024x600 kiosk panel, status first.
+   The top band is a sentence, not a gauge: a headline that names the worst
+   problem (or says all is well) and a workload line that says what the
+   machine is doing. The band's colour wash is the overall verdict.
+   Below it a fixed Swiss grid of tiles shows every reading against its limit.
+   Calm tiles stay grey and quiet; a tile only gains colour when its own
+   reading warms, so red reads as "look here" from across the desk.
+   Drawn entirely by CSS from registered custom properties set by app.js:
+     --p     0..100   bar fill (transitions, so bars glide)
+     --c     <color>  tile accent: grey at rest, amber, then red
+     --tc    <color>  tile value colour, warming the same way
+     --m     <pct>    how much of --c washes into the tile background
+     --band  <color>  verdict band wash (teal -> amber -> red; grey = no data)
+     --acc   <color>  verdict accent (marker, rule, chips)
+   ========================================================================== */
+
+@property --p    { syntax: "<number>";     inherits: true; initial-value: 0; }
+@property --c    { syntax: "<color>";      inherits: true; initial-value: rgb(196, 204, 212); }
+@property --tc   { syntax: "<color>";      inherits: true; initial-value: rgb(236, 240, 243); }
+@property --m    { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+@property --band { syntax: "<color>";      inherits: true; initial-value: rgb(30, 34, 40); }
+@property --acc  { syntax: "<color>";      inherits: true; initial-value: rgb(150, 160, 170); }
+
+:root {
+  --sans: "Fira Sans", "Adwaita Sans", "DejaVu Sans", sans-serif;
+  --cond: "Fira Sans Condensed", "Fira Sans", "DejaVu Sans Condensed", sans-serif;
+
+  --bg:    #0a0b0d;
+  --ink:   rgb(238, 241, 244);
+  --label: rgba(214, 222, 230, .56);
+  --faint: rgba(214, 222, 230, .30);
+  --tile:  rgba(255, 255, 255, .035);
+  --track: rgba(255, 255, 255, .08);
+  --ease:  cubic-bezier(.25, .8, .3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  background: var(--bg);
+  cursor: none;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: relative;
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  transform-origin: top left;
+  background: var(--bg);
+}
+
+/* ==================================================================== band */
+#band {
+  position: absolute; left: 0; top: 0; width: 1024px; height: 226px;
+  padding: 20px 36px 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .05), transparent 40%),
+    linear-gradient(180deg, var(--band) 0%, color-mix(in srgb, var(--band) 62%, var(--bg)) 100%);
+  transition: --band 1.6s ease, --acc 1.6s ease;
+}
+/* the verdict rule: a full-width line of accent under the band */
+#band::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: var(--acc);
+}
+
+.eyebrow {
+  display: flex; align-items: center; gap: 12px;
+  height: 18px;
+  font-family: var(--cond); font-weight: 500;
+  font-size: 14px; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .62);
+  white-space: nowrap;
+}
+.eyebrow .mark {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--acc);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc) 25%, transparent);
+}
+.eyebrow i { font-style: normal; opacity: .4; margin: 0 4px; }
+.eyebrow .clock { margin-left: auto; font-family: var(--sans); font-weight: 500; letter-spacing: .08em;
+                  color: rgba(255, 255, 255, .8); }
+body.alarm .eyebrow .mark { animation: beat 1.1s ease-in-out infinite; }
+@keyframes beat { 50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--acc) 0%, transparent); } }
+
+#headline {
+  margin-top: 22px;
+  height: 96px;
+  font-weight: 800;
+  font-size: 92px; line-height: 96px;
+  letter-spacing: -.028em;
+  white-space: nowrap;
+  color: #fff;
+  transition: opacity .4s;
+}
+#headline .hl-val { font-weight: 300; letter-spacing: -.02em; color: rgba(255, 255, 255, .78); }
+
+.subrow {
+  display: flex; align-items: center; gap: 20px;
+  margin-top: 14px; height: 40px;
+}
+#workload {
+  flex: 1 1 auto; min-width: 0;
+  font-weight: 400; font-size: 29px; letter-spacing: -.005em;
+  color: rgba(255, 255, 255, .86);
+  white-space: nowrap;
+}
+#workload .wl-val { font-weight: 300; color: rgba(255, 255, 255, .6); }
+body.nodata #workload { color: rgba(255, 255, 255, .5); }
+
+#chips { display: flex; gap: 8px; flex: none; }
+.chip {
+  font-family: var(--cond); font-weight: 600;
+  font-size: 17px; letter-spacing: .02em;
+  height: 34px; line-height: 34px; padding: 0 14px;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: #160b04;
+  background: rgb(255, 178, 64);
+}
+.chip.hot { background: rgb(255, 82, 82); color: #fff; }
+.chip.more {
+  font-weight: 500; color: rgba(255, 255, 255, .85);
+  background: rgba(0, 0, 0, .28); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .22);
+}
+.chip.ok {
+  font-weight: 500; color: rgba(255, 255, 255, .72);
+  background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .28);
+}
+
+/* ==================================================================== grid */
+#grid {
+  position: absolute; left: 20px; right: 20px; top: 240px; bottom: 14px;
+  display: grid;
+  grid-template-columns: 80px repeat(5, minmax(0, 1fr));
+  grid-template-rows: 104px 104px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.rowhead {
+  display: flex; flex-direction: column; justify-content: center;
+  padding-left: 14px;
+  font-family: var(--cond); font-weight: 500;
+  font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.rowhead b {
+  font-family: var(--sans); font-weight: 800;
+  font-size: 30px; line-height: 34px; letter-spacing: .01em;
+  color: var(--ink); margin-bottom: 4px;
+}
+
+.tile {
+  --c: rgb(196, 204, 212);
+  --tc: rgb(236, 240, 243);
+  --m: 0%;
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 12px 14px 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) var(--m), var(--tile));
+  transition: --c 1.2s ease, --tc 1.2s ease, --m 1.2s ease, box-shadow .6s;
+}
+.tile.hot { box-shadow: inset 0 0 0 2px var(--c); }
+
+.top {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  height: 16px;
+  font-family: var(--cond); white-space: nowrap;
+}
+.lbl {
+  font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--label);
+}
+.hr {
+  font-weight: 400; font-size: 14px; letter-spacing: .02em;
+  color: var(--label);
+  transition: color 1.2s;
+}
+.tile.warm .hr, .tile.hot .hr { color: color-mix(in srgb, var(--tc) 85%, transparent); }
+.tile.hot .lbl { color: color-mix(in srgb, var(--tc) 80%, transparent); }
+.hr.static { color: var(--faint); }
+
+.val {
+  margin-top: 8px;
+  font-weight: 600; font-size: 44px; line-height: 46px; letter-spacing: -.02em;
+  color: var(--tc);
+  white-space: nowrap;
+}
+.u { font-weight: 400; font-size: .42em; letter-spacing: .01em; color: var(--label); margin-left: 3px; }
+.tile.warm .val .u, .tile.hot .val .u { color: color-mix(in srgb, var(--tc) 70%, transparent); }
+.v { display: inline-block; white-space: nowrap; }
+
+/* dimmed dash for anything missing */
+.na .v, .v.na { color: var(--faint); font-weight: 300; }
+.na .u { opacity: .45; }
+
+.bar {
+  position: absolute; left: 14px; right: 14px; bottom: 14px;
+  height: 6px; border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.bar i {
+  display: block; height: 100%;
+  width: calc(var(--p) * 1%);
+  border-radius: 3px;
+  background: var(--c);
+  opacity: .9;
+  transition: --p 1s var(--ease), --c 1.2s ease;
+}
+.tile:not(.warm):not(.hot) .bar i { opacity: .55; }
+
+/* ============================================================ system row */
+.sysrow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 196px 158px 158px minmax(0, 1fr) 132px;
+  gap: 8px;
+  min-height: 0;
+}
+
+.sub {
+  margin-left: 12px;
+  font-size: 17px; font-weight: 500; letter-spacing: 0; white-space: nowrap;
+  color: var(--label);
+}
+.sub .u { font-size: 14px; margin-left: 3px; color: var(--faint); }
+#t-mem .val .sub .u { color: var(--faint); }
+
+.io .ioline {
+  display: flex; align-items: baseline; gap: 8px;
+  margin-top: 10px;
+  white-space: nowrap;
+}
+.io .ioline:first-of-type { margin-top: 14px; }
+.ioline .dir {
+  width: 14px; flex: none;
+  font-family: var(--cond); font-weight: 600; font-size: 15px;
+  color: var(--faint);
+}
+.ioline .v { font-weight: 600; font-size: 30px; line-height: 32px; letter-spacing: -.015em; color: var(--ink); }
+.ioline .u { font-size: 14px; margin-left: 0; }
+.ioline.idle .v { color: var(--label); font-weight: 400; }
+.ioline.na .v { color: var(--faint); font-weight: 300; }
+
+#t-mobo .val, #t-mem .val { margin-top: 18px; }
+
+/* drives: four compact rows, each tinted by its own space/temperature */
+#drive-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.drive {
+  --c: rgb(196, 204, 212);
+  --tc: rgb(236, 240, 243);
+  --m: 0%;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 44px 40px;
+  align-items: center; gap: 10px;
+  height: 21px; padding: 0 6px; margin: 0 -6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--c) var(--m), transparent);
+  transition: --c 1.2s ease, --tc 1.2s ease, --m 1.2s ease;
+}
+.drive .dname {
+  font-family: var(--cond); font-weight: 500; font-size: 14px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--label); white-space: nowrap;
+}
+.drive .dbar { position: relative; height: 5px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.drive .dbar i {
+  display: block; height: 100%; width: calc(var(--p) * 1%); border-radius: 3px;
+  background: var(--c); opacity: .6;
+  transition: --p 1s var(--ease), --c 1.2s ease;
+}
+.drive.warm .dbar i, .drive.hot .dbar i { opacity: .95; }
+.drive .dval { text-align: right; font-weight: 600; font-size: 17px; white-space: nowrap; color: var(--tc); }
+.drive .dval .u { font-size: 12px; margin-left: 1px; }
+.drive .dval.na .v { font-weight: 300; }
+
+/* ================================================================= stale
+   No data for 5 s: the panel goes grey, the headline is withdrawn (a frozen
+   "All cool" is worse than none) and a note takes its place. */
+#stale-note {
+  position: absolute; left: 36px; top: 62px;
+  font-weight: 800; font-size: 92px; line-height: 96px; letter-spacing: -.028em;
+  color: rgba(255, 255, 255, .9);
+  opacity: 0;
+  transition: opacity .8s;
+  pointer-events: none;
+}
+body.stale #stage > :not(#stale-note) { filter: grayscale(1) brightness(.55); }
+body.stale #headline, body.stale .subrow { opacity: 0; }
+body.stale #stale-note { opacity: 1; }
+body.stale .eyebrow .mark { animation-play-state: paused; }

@@ -313,9 +313,13 @@ Watch the panel (or `curl .../metrics`) reflect the changes within ~1 s.
 
 ## Design alternatives
 
-`designs/` holds five candidate replacements for the production panel, each
+`designs/` holds eight candidate replacements for the production panel, each
 pure HTML/CSS (no images, SVG or canvas) with JS only binding data:
-`holo-hud`, `circuit-core`, `glass-core`, `neon-grid` and `tactical`. The
+`holo-hud`, `circuit-core`, `glass-core`, `neon-grid`, `tactical`, plus three
+built for at-a-glance reading — `pulse` (rolling 2-minute history charts),
+`verdict` (a plain-language headline of what's wrong and what the PC is
+doing, with headroom-to-limit tiles) and `overdrive` (car-cluster needle
+tachometers with warning telltales). The
 production frontend is untouched; each design's `style.css` header explains
 how it draws.
 

@@ -1,0 +1,429 @@
+/* ==========================================================================
+   Pulse — 1024x600 kiosk panel, trend-first.
+   Every reading keeps a rolling 120-sample (2 min at 1 Hz) history, and the
+   history is the main visual. A chart is a stack of plain <i> layers:
+     .area   a gradient fill clipped to the series' area polygon
+     .line   the same gradient clipped to a thin band polygon (the stroke)
+   app.js computes both clip-path: polygon(...) strings from the buffer in
+   pixel units; null samples become gaps. Heat needs no per-sample colouring:
+   each series' gradient runs bottom→top with the production RAMP stops at the
+   matching heights (--s1 cool, --s2 warm, --s3 hot), so whatever part of a
+   line sits in the hot band is drawn red. Each new sample slides the layers
+   in from the right with a 1 s linear transform animation.
+   Text: --c (accent) and --tc (text) warm toward amber/red, as in glass-core.
+   ========================================================================== */
+
+@property --c  { syntax: "<color>"; inherits: true; initial-value: rgb(70, 228, 214); }
+@property --tc { syntax: "<color>"; inherits: true; initial-value: rgb(234, 240, 248); }
+@property --p  { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+:root {
+  --lite:  "Fira Sans Light", "Fira Sans", "DejaVu Sans", sans-serif;
+  --xlite: "Fira Sans ExtraLight", "Fira Sans Light", "Fira Sans", sans-serif;
+  --book:  "Fira Sans Book", "Fira Sans", "DejaVu Sans", sans-serif;
+  --med:   "Fira Sans Medium", "Fira Sans", "DejaVu Sans", sans-serif;
+  --cond:  "Fira Sans Condensed Medium", "Fira Sans Condensed", "Fira Sans", sans-serif;
+  --condb: "Fira Sans Condensed Book", "Fira Sans Condensed", "Fira Sans", sans-serif;
+
+  --ink:   rgb(234, 240, 248);
+  --label: rgba(186, 202, 224, .62);
+  --faint: rgba(186, 202, 224, .34);
+  --rule:  rgba(200, 216, 240, .07);
+
+  /* series hues */
+  --cpu:   rgb(70, 228, 214);
+  --gpu:   rgb(176, 140, 255);
+  --mem:   rgb(108, 176, 255);
+  --temp:  rgb(236, 240, 250);
+  --in:    rgb(92, 204, 255);
+  --out:   rgb(255, 126, 196);
+  --warm:  rgb(255, 190, 92);
+  --hot:   rgb(255, 84, 92);
+
+  --ease:  cubic-bezier(.25, .8, .3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  background: #05070a;
+  cursor: none;
+  color: var(--ink);
+  font-family: var(--book);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: relative;
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  transform-origin: top left;
+  background:
+    radial-gradient(70% 60% at 22% 0%, rgba(40, 190, 180, .10), transparent 70%),
+    radial-gradient(70% 60% at 78% 0%, rgba(140, 100, 255, .10), transparent 70%),
+    radial-gradient(120% 80% at 50% 110%, rgba(60, 110, 200, .08), transparent 70%),
+    linear-gradient(180deg, #0a0d13, #06080c 60%, #05070a);
+}
+/* a very faint dot lattice so the background reads as instrument glass */
+#stage::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(rgba(255, 255, 255, .045) 1px, transparent 1.2px) 0 0 / 16px 16px;
+  mask-image: linear-gradient(180deg, #000, transparent 85%);
+}
+
+/* ===================================================================== bar */
+#bar {
+  position: absolute; left: 20px; right: 20px; top: 8px; height: 28px;
+  display: flex; align-items: center; gap: 16px;
+  font-family: var(--condb); font-size: 13px; color: var(--label);
+  letter-spacing: .06em;
+}
+.brand {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--cond); font-size: 15px; letter-spacing: .34em; text-transform: uppercase;
+  color: var(--ink);
+}
+/* the heartbeat: restarts on every sample, so it doubles as a liveness light */
+.beat {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cpu);
+  box-shadow: 0 0 0 0 rgba(70, 228, 214, .6);
+}
+.beat.on { animation: beat 1s ease-out; }
+@keyframes beat {
+  0%   { transform: scale(1.5); box-shadow: 0 0 0 0 rgba(70, 228, 214, .7); }
+  60%  { transform: scale(1);   box-shadow: 0 0 0 9px rgba(70, 228, 214, 0); }
+  100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(70, 228, 214, 0); }
+}
+.sub { color: var(--faint); }
+.legend { margin-left: auto; display: flex; gap: 14px; color: var(--faint); font-size: 12px; }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.key { width: 14px; height: 3px; border-radius: 2px; }
+.k-load { background: linear-gradient(90deg, var(--cpu), var(--gpu)); }
+.k-temp { background: var(--temp); }
+.k-in   { background: var(--in); }
+.k-out  { background: var(--out); }
+.clock { font-family: var(--cond); font-size: 14px; color: var(--label); letter-spacing: .1em; min-width: 64px; text-align: right; }
+
+/* ================================================================== panels */
+.panel {
+  position: absolute;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .042), rgba(255, 255, 255, .016));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    inset 0 0 0 1px rgba(210, 225, 255, .065),
+    0 18px 40px -20px rgba(0, 0, 0, .8);
+  transition: box-shadow 1.2s ease;
+}
+#cpu   { left: 12px;  top: 42px;  width: 494px; height: 334px; --hue: var(--cpu); }
+#gpu   { left: 518px; top: 42px;  width: 494px; height: 334px; --hue: var(--gpu); }
+#mem   { left: 12px;  top: 388px; width: 184px; height: 200px; --hue: var(--mem); }
+#net   { left: 208px; top: 388px; width: 254px; height: 200px; }
+#disk  { left: 474px; top: 388px; width: 254px; height: 200px; }
+#store { left: 740px; top: 388px; width: 272px; height: 200px; }
+
+/* a hairline of the series hue across the top edge, warming with heat */
+.unit::before {
+  content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c), transparent);
+  opacity: .7; transition: --c 1.2s ease;
+}
+.unit.hot {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    inset 0 0 0 1px rgba(255, 96, 96, .35),
+    inset 0 0 60px -20px rgba(255, 80, 80, .35),
+    0 18px 40px -20px rgba(0, 0, 0, .8);
+}
+
+/* shared text atoms */
+.lbl {
+  font-family: var(--cond); font-size: 12px;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--label); white-space: nowrap;
+}
+.tag { font-family: var(--condb); font-size: 12px; color: var(--faint); letter-spacing: .06em; white-space: nowrap; }
+.u { font-family: var(--book); color: var(--label); white-space: nowrap; }
+.v { display: inline-block; white-space: nowrap; }
+
+/* missing sensor: a dimmed dash, never a blank */
+.na .v, .pv.na, .na.pv { opacity: .35; }
+.na .u { visibility: hidden; }
+.idle .v { opacity: .5; }
+
+/* ------------------------------------------------------------- unit head */
+.head {
+  position: absolute; left: 20px; right: 16px; top: 12px; height: 26px;
+  display: flex; align-items: center; gap: 12px;
+}
+.title { font-family: var(--cond); font-size: 18px; letter-spacing: .3em; color: var(--ink); }
+.model { font-family: var(--condb); font-size: 13px; color: var(--faint); letter-spacing: .05em; }
+.chip {
+  margin-left: auto; position: relative;
+  font-family: var(--cond); font-size: 12px; letter-spacing: .18em;
+  padding: 4px 11px 4px 24px; border-radius: 99px;
+  color: var(--tc);
+  background: rgba(255, 255, 255, .045);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+  transition: color .8s;
+}
+.chip::before {
+  content: ""; position: absolute; left: 10px; top: 50%;
+  width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%;
+  background: var(--c); box-shadow: 0 0 8px 1px var(--c);
+}
+.nodata .chip { color: var(--faint); }
+.nodata .chip::before { background: rgba(186, 202, 224, .3); box-shadow: none; }
+.hot .chip::before { animation: blink 1.1s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+
+/* ------------------------------------------------------------- unit body */
+.body { position: absolute; left: 18px; right: 16px; top: 46px; height: 166px; }
+
+.hero { position: absolute; left: 0; top: 0; width: 128px; height: 166px; }
+.num { font-family: var(--xlite); line-height: 1; white-space: nowrap; color: var(--tc); transition: --tc 1.2s ease; }
+.hero .num { font-size: 64px; letter-spacing: -.02em; margin-left: -3px; }
+.hero .num.wide { font-size: 52px; }
+.hero .num .u { font-family: var(--lite); font-size: 22px; margin-left: 3px; vertical-align: 28px; color: var(--label); }
+.hero .num.wide .u { vertical-align: 21px; }
+.cap {
+  margin-top: 4px;
+  font-family: var(--cond); font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--c); transition: --c 1.2s ease;
+}
+.agg { position: absolute; left: 0; right: 0; bottom: 2px; }
+.agg .row { display: flex; align-items: baseline; justify-content: space-between; padding-right: 10px; }
+.agg .k { font-family: var(--cond); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+.agg .pv { font-family: var(--lite); font-size: 19px; color: var(--ink); white-space: nowrap; }
+.agg .ago {
+  font-family: var(--condb); font-size: 12px; color: var(--faint);
+  height: 15px; margin: 0 0 7px; padding-right: 10px; text-align: right; white-space: nowrap;
+}
+.agg .row + .ago { border-bottom: 1px solid var(--rule); padding-bottom: 5px; height: 21px; }
+
+/* ================================================================== charts */
+.chart { position: absolute; }
+.chart .plot { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.chart .layers, .chart .glow { position: absolute; inset: 0; }
+.chart .layers i { position: absolute; inset: 0; clip-path: polygon(0 0, 0 0, 0 0); }
+.chart .glow { filter: drop-shadow(0 0 5px var(--glow, transparent)); }
+
+/* every series: a vertical gradient with heat bands at --s1/--s2/--s3 */
+.chart .series {
+  --s1: 400%; --s2: 500%; --s3: 600%;
+  background: linear-gradient(0deg,
+    var(--hue) 0%, var(--hue) var(--s1),
+    var(--warm) var(--s2), var(--hot) var(--s3));
+}
+.chart .area { opacity: .34; mask-image: linear-gradient(0deg, rgba(0, 0, 0, .12), #000 90%); }
+.chart .tline { --hue: var(--temp); }
+.chart .s-in  { --hue: var(--in); }
+.chart .s-out { --hue: var(--out); }
+.chart .area.s-out { mask-image: linear-gradient(180deg, rgba(0, 0, 0, .12), #000 90%); }
+
+/* load heat: RAMP.load 70 / 88 / 100 on a 0..100 axis */
+.chart .s-load { --s1: 70%; --s2: 88%; --s3: 100%; }
+/* temp axis is 20..100 °C: RAMP.cpuTemp 58/78/92, RAMP.gpuTemp 58/80/95 */
+#cpu .chart .tline, #cpu-temp-spark .series { --s1: 47.5%; --s2: 72.5%; --s3: 90%; }
+#gpu .chart .tline, #gpu-temp-spark .series { --s1: 47.5%; --s2: 75%;   --s3: 93.75%; }
+/* power: RAMP.power 0.55 / 0.80 / 1.0 of the maximum */
+#cpu-power-spark .series, #gpu-power-spark .series { --s1: 55%; --s2: 80%; --s3: 100%; }
+
+/* "now" dots ride the right edge at the latest value */
+.chart .now {
+  position: absolute; right: -4px; top: 0;
+  width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
+  background: var(--dot, var(--hue));
+  box-shadow: 0 0 0 3px rgba(5, 7, 10, .9), 0 0 12px 2px var(--dot, var(--hue));
+  transition: top .9s var(--ease), background 1s, box-shadow 1s, opacity .4s;
+  opacity: 0;
+}
+.chart .now.on { opacity: 1; }
+.chart .now.t { --hue: var(--temp); }
+.chart .now.s-in { --hue: var(--in); }
+.chart .now.s-out { --hue: var(--out); }
+
+/* peak marker on the big charts (rides along with the layers) */
+.chart .pk {
+  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%; border: 1.5px solid var(--ink); background: rgba(5, 7, 10, .8);
+  opacity: 0; transition: opacity .4s;
+}
+.chart .pk.on { opacity: .9; }
+.chart .pk::after {   /* a short hairline down from the peak */
+  content: ""; position: absolute; left: 3px; top: 9px; width: 1px; height: 26px;
+  background: linear-gradient(rgba(234, 240, 248, .5), transparent);
+}
+
+/* collecting state: an empty grid with a quiet note */
+.chart.empty::after {
+  content: "collecting"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-family: var(--cond); font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--faint);
+}
+.chart.void::after {
+  content: "no data"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-family: var(--cond); font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--faint);
+}
+.chart.spark.empty::after, .chart.mini.empty::after,
+.chart.spark.void::after, .chart.mini.void::after { content: none; }
+.nodata .cap { color: var(--faint); }
+
+/* ------------------------------------------------------------- big chart */
+.chart.big {
+  left: 140px; right: 30px; top: 0; height: 166px;
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, transparent calc(50% - .5px), var(--rule) calc(50% - .5px), var(--rule) calc(50% + .5px), transparent calc(50% + .5px)),
+    repeating-linear-gradient(0deg, rgba(200, 216, 240, .085) 0 1px, transparent 1px 25%),
+    linear-gradient(180deg, rgba(0, 0, 0, .28), rgba(0, 0, 0, .12));
+  box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .06);
+}
+/* a soft glow at the "now" edge */
+.chart.big::before {
+  content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 46px; border-radius: 0 10px 10px 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 14%, transparent));
+  pointer-events: none;
+}
+.chart .ax {
+  position: absolute; bottom: calc(var(--y) * 1%);
+  font-family: var(--condb); font-size: 10px; line-height: 1; white-space: nowrap;
+  pointer-events: none;
+}
+.chart .ax.l { left: 6px; margin-bottom: 3px; color: color-mix(in srgb, var(--hue) 55%, transparent); z-index: 2; }
+.chart .ax.r { right: -27px; margin-bottom: -5px; color: rgba(236, 240, 250, .45); }
+
+.taxis {
+  position: absolute; left: 158px; right: 46px; top: 214px; height: 14px;
+  display: flex; justify-content: space-between;
+  font-family: var(--condb); font-size: 10px; letter-spacing: .08em; color: var(--faint);
+}
+
+/* ------------------------------------------------------------- stat cells */
+.stats {
+  position: absolute; left: 18px; right: 16px; top: 236px; bottom: 12px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.stat {
+  position: relative; padding: 8px 10px 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .16);
+  box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
+}
+.stat .lbl { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .16em; }
+.stat .note { font-family: var(--condb); letter-spacing: .02em; text-transform: none; color: var(--tc); opacity: .85; }
+.stat .val { margin-top: 2px; font-family: var(--lite); font-size: 24px; line-height: 1.05; color: var(--tc); white-space: nowrap; transition: --tc 1.2s ease; }
+.stat .val .u { font-size: 12px; margin-left: 3px; }
+.chart.spark { left: 10px; right: 10px; bottom: 9px; height: 24px; border-bottom: 1px solid var(--rule); }
+.chart.spark .area { opacity: .26; }
+.chart.spark .now { width: 6px; height: 6px; margin-top: -3px; right: -3px; box-shadow: 0 0 6px 1px var(--hue); }
+
+/* ================================================================ small panels */
+.shead {
+  position: absolute; left: 16px; right: 14px; top: 12px; height: 18px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+
+/* memory */
+.num.mid { position: absolute; left: 14px; top: 36px; font-size: 50px; }
+.num.mid .u { font-family: var(--lite); font-size: 20px; margin-left: 2px; color: var(--label); }
+#mem .gb { position: absolute; left: 16px; top: 92px; font-size: 13px; white-space: nowrap; color: var(--label); }
+#mem .gb .v { color: var(--ink); font-family: var(--med); }
+#mem .gb .u { margin-left: 4px; }
+.chart.mini {
+  left: 14px; right: 14px; bottom: 14px; height: 70px; border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(200, 216, 240, .075) 0 1px, transparent 1px 25%),
+    rgba(0, 0, 0, .2);
+  box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
+}
+#mem-chart .series { --s1: 70%; --s2: 88%; --s3: 100%; }
+
+/* network / disk: incoming above a centre axis, outgoing mirrored below */
+.io .pair { position: absolute; left: 16px; right: 14px; top: 38px; display: flex; flex-direction: column; gap: 2px; }
+.rate { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.rate .dir {
+  font-style: normal; font-family: var(--cond); font-size: 12px; width: 14px; text-align: center;
+}
+.rate.in .dir  { color: var(--in); }
+.rate.out .dir { color: var(--out); }
+.rate .v { font-family: var(--lite); font-size: 25px; line-height: 1.05; min-width: 3.6ch; text-align: right; }
+.rate .u { font-size: 12px; }
+.chart.mirror {
+  left: 14px; right: 14px; bottom: 14px; height: 84px; border-radius: 8px;
+  background:
+    linear-gradient(0deg, transparent calc(50% - .5px), rgba(200, 216, 240, .2) calc(50% - .5px), rgba(200, 216, 240, .2) calc(50% + .5px), transparent calc(50% + .5px)),
+    repeating-linear-gradient(90deg, rgba(200, 216, 240, .05) 0 1px, transparent 1px 25%),
+    rgba(0, 0, 0, .2);
+  box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
+}
+.chart .scale {
+  position: absolute; left: 7px; z-index: 2;
+  font-family: var(--condb); font-size: 10px; line-height: 1; white-space: nowrap;
+  color: var(--faint); letter-spacing: .04em;
+}
+.chart .scale.top { top: 5px; }
+.chart .scale.bot { bottom: 5px; }
+
+/* storage */
+.board { display: flex; align-items: baseline; gap: 8px; }
+.bval { font-family: var(--lite); font-size: 18px; color: var(--tc); transition: --tc 1.2s ease; white-space: nowrap; }
+.bval .u { font-size: 12px; margin-left: 2px; }
+.dhead {
+  position: absolute; right: 14px; top: 42px; width: 92px;
+  display: flex; justify-content: space-between;
+  font-family: var(--cond); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
+}
+.dhead span:first-child { padding-left: 4px; }
+.drives {
+  position: absolute; left: 16px; right: 14px; top: 62px; bottom: 12px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.drive {
+  display: grid; grid-template-columns: 1fr 50px 42px; align-items: center; column-gap: 8px;
+  height: 28px;
+}
+.drive .dn { min-width: 0; }
+.drive .dname {
+  display: block; font-family: var(--condb); font-size: 13px; color: var(--ink);
+  text-transform: uppercase; letter-spacing: .06em; white-space: nowrap;
+}
+.drive .bar {
+  display: block; position: relative; height: 4px; margin-top: 5px; border-radius: 2px;
+  background: rgba(200, 216, 240, .1);
+}
+.drive .bar i {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px;
+  width: calc(var(--p) * 1%);
+  background: var(--c);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--c) 60%, transparent);
+  transition: --p 1s var(--ease), --c 1.2s ease;
+}
+.drive .bar.na i { opacity: 0; }
+.drive .dpct, .drive .dtemp {
+  font-family: var(--lite); font-size: 17px; text-align: right; white-space: nowrap;
+  color: var(--tc); transition: --tc 1.2s ease;
+}
+.drive .u { font-size: 11px; margin-left: 1px; }
+
+/* =================================================================== stale
+   No data for 5 s: everything greys out, the charts stop sliding and a note
+   says why, so nobody trusts a frozen trace. */
+#stale-note {
+  position: absolute; left: 50%; top: 210px; transform: translate(-50%, -50%);
+  font-family: var(--cond); font-size: 15px; letter-spacing: .26em; text-transform: uppercase;
+  color: rgba(255, 214, 170, .95);
+  padding: 10px 24px 10px 28px; border-radius: 99px;
+  background: rgba(12, 12, 14, .94);
+  box-shadow: inset 0 0 0 1px rgba(255, 200, 150, .3), 0 10px 40px rgba(0, 0, 0, .6);
+  opacity: 0; transition: opacity .8s; z-index: 5;
+}
+body.stale #stage > :not(#stale-note) { filter: grayscale(.85) brightness(.6); }
+body.stale #stale-note { opacity: 1; }
+body.stale .beat, body.stale .chip::before { animation-play-state: paused; }

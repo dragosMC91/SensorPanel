@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1024, height=600, initial-scale=1" />
+  <title>Overdrive</title>
+  <!-- Overdrive: a performance-car instrument cluster. Two needle tachometers
+       (CPU / GPU load) with a redline, a centre trip computer, an odometer row
+       for the drives and a strip of warning telltales that light up when
+       something runs warm or hot. Everything is HTML + CSS; app.js only sets
+       text, classes and custom properties. -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+    <i class="ambient a-cpu" id="amb-cpu" aria-hidden="true"></i>
+    <i class="ambient a-gpu" id="amb-gpu" aria-hidden="true"></i>
+
+    <!-- =============================================================== top -->
+    <header class="topbar">
+      <div class="tb l"><b>CPU</b><span>Ryzen 9 3900X · 12C/24T</span></div>
+      <div class="brand"><span class="mark">OVERDRIVE</span><span class="clock" id="clock"></span></div>
+      <div class="tb r"><span>Radeon RX 6800 · 16 GB</span><b>GPU</b></div>
+    </header>
+
+    <!-- ============================================================ CPU tach -->
+    <section class="dial" id="cpu-dial">
+      <i class="bezel"></i><i class="face"></i>
+      <i class="redzone"></i><i class="redline"></i>
+      <i class="trail"></i>
+      <i class="ticks minor"></i><i class="ticks mid"></i><i class="ticks major"></i>
+      <div class="numerals"></div>
+      <i class="cool-track"></i><i class="cool" id="cpu-cool"></i>
+      <span class="cl c">C</span><span class="cl h">H</span>
+      <div class="needle"><i></i></div>
+      <div class="hub"><div class="cap">
+        <span class="hl">CPU load</span>
+        <span class="load" id="cpu-usage"><span class="v">–</span><span class="u">%</span></span>
+        <span class="rpm" id="cpu-clock"><span class="v">–</span><span class="u">MHz</span></span>
+      </div></div>
+      <div class="gap">
+        <div class="mini" id="cpu-temp-s"><span class="ml">Temp</span>
+          <span class="mv" id="cpu-temp"><span class="v">–</span><span class="u">°C</span></span></div>
+        <div class="mini mid" id="cpu-cores-s"><span class="ml">Cores</span>
+          <span class="gear" id="cpu-active"><span class="v">–</span><span class="u">/12</span></span></div>
+        <div class="mini" id="cpu-power-s"><span class="ml">Power</span>
+          <span class="mv" id="cpu-power"><span class="v">–</span><span class="u">W</span></span>
+          <i class="mbar" id="cpu-power-bar"><b></b></i></div>
+      </div>
+    </section>
+
+    <!-- ===================================================== trip computer -->
+    <section class="trip" id="trip">
+      <header class="trip-h">
+        <span class="tt">System</span>
+        <span class="status" id="status"><i></i><b id="status-t">All clear</b></span>
+      </header>
+
+      <div class="t-mem" id="mem-s">
+        <div class="tl">Memory <em>DDR4</em></div>
+        <div class="memrow">
+          <span class="big" id="mem-pct"><span class="v">–</span><span class="u">%</span></span>
+          <span class="gb" id="mem-gb"><span class="v">–</span><span class="u">/ 62.7 GB</span></span>
+        </div>
+        <div class="seg" id="mem-bar"><b></b></div>
+      </div>
+
+      <div class="t-io">
+        <div class="row" id="net-down"><span class="rl">Net</span><span class="dir dn"></span><span class="v">–</span><span class="u">MB/s</span></div>
+        <div class="row" id="net-up"><span class="rl" id="net-iface">wlan0</span><span class="dir up"></span><span class="v">–</span><span class="u">MB/s</span></div>
+        <div class="row" id="disk-read"><span class="rl">Disk</span><span class="dir">R</span><span class="v">–</span><span class="u">MB/s</span></div>
+        <div class="row" id="disk-write"><span class="rl"></span><span class="dir">W</span><span class="v">–</span><span class="u">MB/s</span></div>
+      </div>
+
+      <div class="t-board" id="mobo-s">
+        <span class="tl">Board <em>X570</em></span>
+        <span class="bt" id="mobo"><span class="v">–</span><span class="u">°C</span></span>
+      </div>
+    </section>
+
+    <!-- ============================================================ GPU tach -->
+    <section class="dial" id="gpu-dial">
+      <i class="bezel"></i><i class="face"></i>
+      <i class="redzone"></i><i class="redline"></i>
+      <i class="trail"></i>
+      <i class="ticks minor"></i><i class="ticks mid"></i><i class="ticks major"></i>
+      <div class="numerals"></div>
+      <i class="cool-track"></i><i class="cool" id="gpu-cool"></i>
+      <span class="cl c">C</span><span class="cl h">H</span>
+      <div class="needle"><i></i></div>
+      <div class="hub"><div class="cap">
+        <span class="hl">GPU load</span>
+        <span class="load" id="gpu-usage"><span class="v">–</span><span class="u">%</span></span>
+        <span class="rpm" id="gpu-clock"><span class="v">–</span><span class="u">MHz</span></span>
+      </div></div>
+      <div class="gap">
+        <div class="mini" id="gpu-temp-s"><span class="ml">Temp</span>
+          <span class="mv" id="gpu-temp"><span class="v">–</span><span class="u">°C</span></span></div>
+        <div class="mini mid" id="gpu-vram-s"><span class="ml">VRAM</span>
+          <span class="gear" id="gpu-vram"><span class="v">–</span><span class="u">/16</span></span>
+          <i class="mbar fuel" id="gpu-vram-bar"><b></b></i></div>
+        <div class="mini" id="gpu-power-s"><span class="ml">Power</span>
+          <span class="mv" id="gpu-power"><span class="v">–</span><span class="u">W</span></span>
+          <i class="mbar" id="gpu-power-bar"><b></b></i></div>
+      </div>
+    </section>
+
+    <!-- ========================================================= odometers -->
+    <section class="drives" id="drives">
+      <!-- 4 cards built by app.js -->
+    </section>
+
+    <!-- ========================================================= telltales -->
+    <section class="lamps">
+      <div class="lamp" id="lamp-cputemp"><i class="ico thermo"></i><span>CPU temp</span></div>
+      <div class="lamp" id="lamp-gputemp"><i class="ico thermo"></i><span>GPU temp</span></div>
+      <div class="lamp" id="lamp-power"><i class="ico bolt"></i><span>Power</span></div>
+      <div class="lamp" id="lamp-vram"><i class="ico chip"></i><span>VRAM</span></div>
+      <div class="lamp" id="lamp-ram"><i class="ico chip"></i><span>RAM</span></div>
+      <div class="lamp" id="lamp-disk"><i class="ico pie"></i><span>Disk full</span></div>
+      <div class="lamp" id="lamp-drvtemp"><i class="ico thermo"></i><span>Drive temp</span></div>
+      <div class="lamp" id="lamp-link"><i class="ico alert"></i><span>Sensor link</span></div>
+    </section>
+
+    <!-- shown only when the collector goes quiet -->
+    <div id="stale-note">Sensor link lost</div>
+  </div>
+
+  <script src="../shared/feed.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

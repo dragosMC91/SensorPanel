@@ -1,0 +1,500 @@
+/* ==========================================================================
+   Overdrive — 1024x600 kiosk panel.
+   A performance-car instrument cluster on carbon fibre. Each tachometer is a
+   stack of round layers inside one 340x340 box:
+     bezel / face      conic "brushed chrome" ring + radial dark face
+     ticks / redzone   repeating-conic-gradients masked to a ring (radial mask)
+                       and to the 240° sweep (conic mask), intersected
+     trail             a conic sweep that grows with --p behind the needle
+     needle            a tapered blade rotated by calc(-120deg + --p * 2.4deg)
+     cool              the coolant (temperature) arc in the bottom gap, --t
+     hub               chrome-rimmed centre cap with the digital readouts
+   Registered custom properties set by app.js, transitioned here:
+     --p   0..100   gauge fill (needle, trail, bars)
+     --t   0..100   coolant arc fill
+     --c   <color>  accent (ice-white at rest, warming to amber/red)
+     --tc  <color>  text colour, warming the same way
+   No images, SVG or canvas.
+   ========================================================================== */
+
+@property --p  { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --t  { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --c  { syntax: "<color>";  inherits: true; initial-value: rgb(214, 232, 255); }
+@property --tc { syntax: "<color>";  inherits: true; initial-value: rgb(242, 244, 248); }
+
+:root {
+  --cond:  "Fira Sans Condensed", "Fira Sans", "DejaVu Sans", sans-serif;
+  --clite: "Fira Sans Condensed Light", "Fira Sans Condensed", "Fira Sans", sans-serif;
+  --cmed:  "Fira Sans Condensed Medium", "Fira Sans Condensed", "Fira Sans", sans-serif;
+  --csemi: "Fira Sans Condensed SemiBold", "Fira Sans Condensed", "Fira Sans", sans-serif;
+  --mono:  "DejaVu Sans Mono", "Adwaita Mono", monospace;
+
+  --ink:    rgb(242, 244, 248);
+  --label:  rgba(214, 222, 236, .58);
+  --faint:  rgba(214, 222, 236, .32);
+  --needle: #ff4d14;
+  --amber:  #ffae1f;
+  --red:    #ff3b2f;
+  --green:  #3ee08a;
+  --ease:   cubic-bezier(.3, .75, .3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  background: #050506;
+  cursor: none;
+  color: var(--ink);
+  font-family: var(--cond);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* carbon-fibre twill under a vignette */
+#stage {
+  position: relative;
+  width: 1024px; height: 600px;
+  overflow: hidden;
+  transform-origin: top left;
+  background:
+    radial-gradient(120% 95% at 50% 40%, transparent 35%, rgba(0, 0, 0, .78) 100%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .028) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .55) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, #121316, #0a0b0d);
+}
+
+/* heat glow behind each tach; only opacity changes */
+.ambient {
+  position: absolute; top: -40px; width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 70, 20, .55), rgba(255, 40, 20, .18) 55%, transparent);
+  opacity: var(--hx, 0);
+  transition: opacity 2s ease;
+  pointer-events: none;
+}
+.a-cpu { left: -66px; }
+.a-gpu { right: -66px; }
+
+/* shared text atoms */
+.v { display: inline-block; white-space: nowrap; }
+.u { color: var(--label); white-space: nowrap; }
+.na .v, .v.na { opacity: .35; }
+.na .u { opacity: .4; }
+.idle .v { opacity: .5; }
+
+/* ================================================================= top bar */
+.topbar {
+  position: absolute; left: 22px; right: 22px; top: 6px; height: 26px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--cmed); font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--label);
+}
+.tb { display: flex; align-items: center; gap: 10px; width: 330px; }
+.tb.r { justify-content: flex-end; }
+.tb b {
+  font-family: var(--csemi); font-weight: normal; color: #111; letter-spacing: .12em;
+  background: linear-gradient(180deg, #ff8a3d, #ff4d14);
+  padding: 1px 8px; border-radius: 3px;
+  transform: skewX(-12deg);
+}
+.brand { display: flex; align-items: baseline; gap: 14px; }
+.mark {
+  font-family: "Fira Sans Condensed ExtraBold", var(--csemi); font-style: italic;
+  font-size: 17px; letter-spacing: .34em;
+  background: linear-gradient(180deg, #ffffff, #9ea3ab 55%, #e8eaee);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.clock { font-family: var(--mono); font-size: 13px; letter-spacing: .08em; color: var(--ink); }
+
+/* =================================================================== dials */
+.dial {
+  position: absolute; top: 36px; width: 340px; height: 340px;
+  --sector: conic-gradient(from 238.6deg, #000 0 242.8deg, transparent 0);
+  transition: --p 1.1s var(--ease), --t 1.4s var(--ease), --c 1.2s ease, --tc 1.2s ease;
+}
+#cpu-dial { left: 20px; }
+#gpu-dial { right: 20px; }
+.dial > i, .dial > .numerals, .dial > .needle { position: absolute; inset: 0; border-radius: 50%; }
+
+.bezel {
+  background: conic-gradient(from 10deg, #2a2c30, #a3a7ad 11%, #393b40 24%, #d4d7db 37%, #2f3135 51%,
+                              #8f9399 64%, #2a2c30 78%, #c0c3c8 91%, #2a2c30);
+  box-shadow: 0 0 0 1px #000, 0 14px 34px rgba(0, 0, 0, .85);
+  transition: box-shadow 1.2s ease;
+}
+.dial.hot .bezel { box-shadow: 0 0 0 1px #000, 0 14px 34px rgba(0, 0, 0, .85), 0 0 46px 6px rgba(255, 45, 25, .5); }
+.dial > .face {
+  inset: 6px;
+  background:
+    radial-gradient(circle at 50% 36%, #191b20 0, #0c0d10 52%, #050506 100%);
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, .95), inset 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+/* tick rings: ring mask ∩ sweep mask */
+.ticks, .redzone, .redline, .trail {
+  -webkit-mask: var(--ring), var(--sector);
+  -webkit-mask-composite: source-in;
+  mask: var(--ring), var(--sector);
+  mask-composite: intersect;
+}
+.ticks.minor {
+  --ring: radial-gradient(circle, transparent 150px, #000 150.5px 156.5px, transparent 157px);
+  background: repeating-conic-gradient(from 239.7deg, rgba(255, 255, 255, .42) 0 .6deg, transparent .6deg 4.8deg);
+}
+.ticks.mid {
+  --ring: radial-gradient(circle, transparent 144px, #000 144.5px 156.5px, transparent 157px);
+  background: repeating-conic-gradient(from 239.5deg, rgba(255, 255, 255, .7) 0 1deg, transparent 1deg 12deg);
+}
+.ticks.major {
+  --ring: radial-gradient(circle, transparent 136px, #000 136.5px 156.5px, transparent 157px);
+  background: repeating-conic-gradient(from 239.2deg, #fff 0 1.6deg, transparent 1.6deg 24deg);
+}
+/* redline from 88 % (211.2° into the sweep) to 100 % */
+.redzone {
+  --ring: radial-gradient(circle, transparent 134px, #000 134.5px 157px, transparent 157.5px);
+  background: conic-gradient(from 240deg, transparent 0 211.2deg,
+                             rgba(255, 40, 30, .12) 211.2deg, rgba(255, 40, 30, .42) 240deg, transparent 240deg);
+}
+.redline {
+  --ring: radial-gradient(circle, transparent 157.5px, #000 158px 161.5px, transparent 162px);
+  background: conic-gradient(from 240deg, rgba(255, 255, 255, .16) 0 211.2deg, #ff2d20 211.2deg 240deg, transparent 240deg);
+}
+/* the sweep trail behind the needle */
+.trail {
+  --ring: radial-gradient(circle, transparent 124px, #000 124.5px 132.5px, transparent 133px);
+  background: conic-gradient(from 240deg,
+    color-mix(in srgb, var(--c) 4%, transparent) 0deg,
+    color-mix(in srgb, var(--c) 88%, transparent) calc(var(--p) * 2.4deg),
+    transparent calc(var(--p) * 2.4deg));
+}
+
+.numerals span {
+  position: absolute; left: 50%; top: 50%;
+  font-family: var(--cmed); font-size: 15px; line-height: 1;
+  color: rgba(255, 255, 255, .78);
+  transform: translate(-50%, -50%) rotate(var(--a)) translateY(-112px) rotate(calc(-1 * var(--a)));
+}
+.numerals span.red { color: #ff5246; }
+
+/* coolant arc: bottom gap, 145°..215°, fills left (C) to right (H) */
+.cool-track, .cool {
+  -webkit-mask: radial-gradient(circle, transparent 149.5px, #000 150px 156.5px, transparent 157px);
+  mask: radial-gradient(circle, transparent 149.5px, #000 150px 156.5px, transparent 157px);
+}
+.cool-track {
+  background: conic-gradient(from 145deg, rgba(255, 70, 50, .32) 0deg, rgba(255, 255, 255, .1) 30deg,
+                              rgba(90, 170, 255, .32) 70deg, transparent 70deg);
+}
+.cool {
+  background: conic-gradient(from 145deg, transparent 0 calc((100 - var(--t)) * .7deg),
+                              var(--c) calc((100 - var(--t)) * .7deg) 70deg, transparent 70deg);
+}
+.cl {
+  position: absolute; left: 50%; top: 50%;
+  font-family: var(--cmed); font-size: 10px; line-height: 1; color: var(--faint);
+  transform: translate(-50%, -50%) rotate(var(--a)) translateY(-153px) rotate(calc(-1 * var(--a)));
+}
+.cl.c { --a: 222deg; color: rgba(110, 180, 255, .7); }
+.cl.h { --a: 138deg; color: rgba(255, 90, 70, .75); }
+
+/* needle: tapered blade from under the hub out to the ticks */
+.dial > .needle {
+  transform: rotate(calc(-120deg + var(--p) * 2.4deg));
+  filter: drop-shadow(0 0 5px rgba(255, 70, 20, .85));
+}
+.needle i {
+  position: absolute; left: 50%; top: 12px;
+  width: 10px; height: 92px; margin-left: -5px;
+  background: linear-gradient(180deg, #fff 0 5%, #ff9a52 13%, var(--needle) 45%, #b82600);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+}
+.dial.na .needle { filter: none; }
+.dial.na .needle i { background: linear-gradient(180deg, #6a6c70, #3a3c40); }
+
+/* hub cap */
+.dial > .hub {
+  position: absolute; border-radius: 50%; left: 95px; top: 95px; width: 150px; height: 150px;
+  padding: 4px;
+  background: conic-gradient(from 30deg, #5d6168, #e9ebef 12%, #50545a 27%, #cdd0d5 42%, #45494f 58%,
+                              #f0f2f5 73%, #5d6168 88%, #b9bcc2 95%, #5d6168);
+  box-shadow: 0 0 0 1px #000, 0 8px 22px rgba(0, 0, 0, .8);
+}
+.cap {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 50% 28%, #20232a, #0b0c0f 72%);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(255, 255, 255, .05);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.hl {
+  font-family: var(--cmed); font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+  color: #ff7a3a; margin-bottom: 1px;
+}
+.load {
+  font-family: var(--clite); font-size: 60px; line-height: .92;
+  color: var(--tc); letter-spacing: -.01em;
+  margin-left: 14px;            /* optically centre the digits, not digits + % */
+}
+.load .u { font-family: var(--cond); font-size: 18px; margin-left: 2px; color: var(--label); vertical-align: 26px; }
+.load.wide { font-size: 54px; }
+.rpm { font-family: var(--mono); font-size: 13px; color: var(--ink); margin-top: 3px; }
+.rpm .u { font-family: var(--cond); font-size: 11px; margin-left: 3px; letter-spacing: .06em; }
+
+/* readouts in the bottom gap */
+.gap {
+  position: absolute; left: 70px; top: 248px; width: 200px; height: 46px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.mini { width: 62px; display: flex; flex-direction: column; align-items: center; }
+.mini.mid { width: 72px; }
+.ml {
+  font-family: var(--cmed); font-size: 9px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--faint);
+}
+.mv { font-family: var(--cmed); font-size: 21px; line-height: 1.05; color: var(--tc); transition: color 1s; }
+.mv .u { font-family: var(--cond); font-size: 11px; margin-left: 1px; }
+.gear {
+  font-family: var(--csemi); font-size: 19px; line-height: 1;
+  color: var(--tc);
+  padding: 2px 5px 1px; margin-top: 1px;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, .22); border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0));
+}
+.gear .u { font-family: var(--cond); font-size: 11px; margin-left: 1px; }
+#gpu-vram { font-size: 17px; padding-top: 3px; padding-bottom: 2px; }
+.mbar {
+  display: block; position: relative; width: 44px; height: 3px; margin-top: 3px;
+  border-radius: 2px; background: rgba(255, 255, 255, .12);
+  transition: --p 1.1s var(--ease), --c 1.2s ease;
+}
+.mbar b {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px;
+  width: calc(var(--p) * 1%);
+  background: var(--c);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.mbar.fuel { margin-top: 4px; }
+
+/* ============================================================ trip computer */
+.trip {
+  position: absolute; left: 376px; top: 46px; width: 272px; height: 322px;
+  border-radius: 18px;
+  padding: 12px 16px 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .045), transparent 30%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #0d0f13, #07080a);
+  box-shadow:
+    0 0 0 1px #000,
+    0 0 0 3px #3a3d42,
+    0 0 0 4px #15171a,
+    inset 0 1px 0 rgba(255, 255, 255, .1),
+    0 16px 34px rgba(0, 0, 0, .8);
+  display: flex; flex-direction: column;
+}
+.trip-h {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 22px; padding-bottom: 8px; margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  box-sizing: content-box;
+}
+.tt { font-family: var(--cmed); font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--label); }
+.status {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--csemi); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--green);
+  padding: 3px 10px; border-radius: 99px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
+  transition: color .6s;
+}
+.status b { font-weight: normal; }
+.status i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+.status.warn { color: var(--amber); }
+.status.hot  { color: var(--red); }
+.status.hot i { animation: blink 1s ease-in-out infinite; }
+.status.off  { color: var(--faint); }
+.status.off i { box-shadow: none; }
+
+.tl {
+  font-family: var(--cmed); font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--label);
+}
+.tl em { font-style: normal; color: var(--faint); margin-left: 6px; letter-spacing: .12em; }
+
+.t-mem { padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.memrow { display: flex; align-items: baseline; justify-content: space-between; margin-top: 2px; }
+.big { font-family: var(--clite); font-size: 50px; line-height: 1; color: var(--tc); }
+.big .u { font-family: var(--cond); font-size: 18px; margin-left: 2px; }
+.gb { font-family: var(--cmed); font-size: 17px; color: var(--ink); }
+.gb .u { font-family: var(--cond); font-size: 13px; margin-left: 5px; }
+/* segmented bar: a fill masked into 24 cells */
+.seg {
+  position: relative; height: 9px; margin-top: 7px;
+  transition: --p 1.1s var(--ease), --c 1.2s ease;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+  mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px);
+  background: rgba(255, 255, 255, .09);
+}
+.seg b {
+  position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--p) * 1%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c));
+}
+
+.t-io { padding: 8px 0 6px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.row {
+  display: grid; grid-template-columns: 46px 16px 1fr 40px; align-items: baseline;
+  height: 27px;
+}
+.rl { font-family: var(--cmed); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--label); }
+#net-iface { color: var(--faint); letter-spacing: .08em; text-transform: none; }
+.dir { font-family: var(--csemi); font-size: 11px; color: var(--faint); }
+.dir.dn::before, .dir.up::before {
+  content: ""; display: inline-block; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+}
+.dir.dn::before { border-top: 7px solid #4fb7ff; }
+.dir.up::before { border-bottom: 7px solid #ff8a3d; }
+.row .v { font-family: var(--cmed); font-size: 21px; text-align: right; justify-self: end; color: var(--ink); }
+.row .u { font-family: var(--cond); font-size: 12px; padding-left: 6px; }
+
+.t-board {
+  margin-top: auto;
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.bt { font-family: var(--cmed); font-size: 22px; color: var(--tc); }
+.bt .u { font-family: var(--cond); font-size: 12px; margin-left: 2px; }
+
+/* =============================================================== odometers */
+.drives {
+  position: absolute; left: 20px; top: 388px; width: 984px; height: 114px;
+  display: flex; gap: 10px;
+}
+.drv {
+  flex: 1; position: relative;
+  padding: 10px 14px 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .01) 40%),
+    linear-gradient(180deg, #0e1013, #08090b);
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(255, 255, 255, .07), 0 10px 24px rgba(0, 0, 0, .6);
+}
+.dh { display: flex; align-items: center; gap: 8px; height: 18px; }
+.tag {
+  font-family: var(--mono); font-size: 10px; font-weight: bold; color: #111;
+  background: #c9ccd1; border-radius: 3px; padding: 1px 4px;
+}
+.dname { font-family: var(--cmed); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); }
+.dbody { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 10px; }
+.odo-w { display: flex; align-items: flex-end; gap: 7px; }
+/* odometer drums: one dark cell per monospace character (1ch) */
+.odo .v {
+  font-family: var(--mono); font-weight: bold; font-size: 31px; line-height: 40px;
+  width: 3ch; text-align: right;
+  color: var(--tc);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, .85), transparent 28% 72%, rgba(0, 0, 0, .85)),
+    repeating-linear-gradient(90deg, #22252a 0 calc(1ch - 3px), transparent calc(1ch - 3px) 1ch);
+  border-radius: 3px;
+  transition: color 1s;
+}
+.odo.na .v { opacity: .4; }
+.odu { font-family: var(--cmed); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--faint); line-height: 1.25; padding-bottom: 4px; }
+.odu b { display: block; font-family: var(--cond); font-weight: normal; font-size: 15px; letter-spacing: 0; color: var(--label); }
+.dtemp { display: flex; align-items: baseline; gap: 2px; font-family: var(--cmed); font-size: 24px; color: var(--tc); padding-bottom: 3px; transition: color 1s; }
+.dtemp .u { font-family: var(--cond); font-size: 12px; }
+.dtemp .ico { align-self: center; transform: scale(.7); margin-right: 2px; color: var(--faint); }
+.dbar {
+  position: absolute; left: 14px; right: 14px; bottom: 10px; height: 3px; border-radius: 2px;
+  background: rgba(255, 255, 255, .1);
+  transition: --p 1.1s var(--ease), --c 1.2s ease;
+}
+.dbar b { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--p) * 1%); border-radius: 2px; background: var(--c); }
+
+/* =============================================================== telltales */
+.lamps {
+  position: absolute; left: 20px; top: 514px; width: 984px; height: 70px;
+  display: flex; gap: 8px;
+}
+.lamp {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #0c0d10, #060708);
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(255, 255, 255, .05), inset 0 6px 14px rgba(0, 0, 0, .7);
+  color: rgba(255, 255, 255, .12);
+  font-family: var(--cmed); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  transition: color .5s, background .5s, box-shadow .5s;
+}
+.lamp.warm {
+  color: var(--amber);
+  background: radial-gradient(90% 90% at 50% 45%, rgba(255, 166, 20, .26), rgba(255, 140, 0, .05) 70%), #0f0b04;
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(255, 174, 31, .4), 0 0 18px rgba(255, 150, 0, .25);
+  text-shadow: 0 0 8px rgba(255, 174, 31, .7);
+}
+.lamp.hot {
+  color: var(--red);
+  background: radial-gradient(90% 90% at 50% 45%, rgba(255, 50, 30, .34), rgba(255, 40, 20, .06) 70%), #120504;
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(255, 70, 50, .55), 0 0 22px rgba(255, 40, 20, .4);
+  text-shadow: 0 0 8px rgba(255, 60, 40, .8);
+  animation: throb 1.6s ease-in-out infinite;
+}
+@keyframes throb { 50% { box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(255, 70, 50, .3), 0 0 8px rgba(255, 40, 20, .15); } }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* lamp icons, drawn in currentColor */
+.ico { position: relative; display: block; height: 22px; flex: none; }
+.ico::before, .ico::after { content: ""; position: absolute; }
+.thermo { width: 12px; }
+.thermo::before {
+  left: 3px; top: 0; width: 6px; height: 15px;
+  border: 2px solid currentColor; border-bottom: 0; border-radius: 3px 3px 0 0;
+  background: linear-gradient(0deg, currentColor 55%, transparent 55%);
+}
+.thermo::after { left: 0; bottom: 0; width: 12px; height: 11px; border-radius: 50%; background: currentColor; }
+.bolt { width: 15px; background: currentColor; clip-path: polygon(62% 0, 4% 58%, 44% 58%, 30% 100%, 96% 38%, 56% 38%, 78% 0); }
+.chip { width: 24px; }
+.chip::before { left: 2px; right: 2px; top: 5px; bottom: 5px; border: 2px solid currentColor; border-radius: 2px; }
+.chip::after {
+  left: 5px; right: 5px; top: 1px; bottom: 1px;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px);
+  -webkit-mask: linear-gradient(#000 0 4px, transparent 4px calc(100% - 4px), #000 calc(100% - 4px));
+  mask: linear-gradient(#000 0 4px, transparent 4px calc(100% - 4px), #000 calc(100% - 4px));
+}
+.pie {
+  width: 22px; border-radius: 50%; border: 2px solid currentColor; padding: 2px;
+  background: conic-gradient(currentColor 0 78%, transparent 0) content-box;
+}
+.ico.alert { width: 25px; background: currentColor; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.ico.alert::after {
+  left: 11px; top: 7px; width: 3px; height: 13px;
+  background: linear-gradient(#0a0a0b 0 8px, transparent 8px 10px, #0a0a0b 10px);
+}
+
+/* ================================================================== stale
+   No data for 5 s: the cluster dims and desaturates, needles freeze in place
+   and the SENSOR LINK telltale goes red so nobody trusts frozen numbers. */
+#stale-note {
+  position: absolute; left: 512px; top: 206px;
+  transform: translate(-50%, -50%);
+  font-family: var(--csemi); font-size: 15px; letter-spacing: .26em; text-transform: uppercase;
+  color: #ffd0b8;
+  padding: 10px 22px 10px 26px;
+  border-radius: 8px;
+  background: rgba(20, 8, 6, .94);
+  box-shadow: inset 0 0 0 1px rgba(255, 80, 50, .5), 0 10px 40px rgba(0, 0, 0, .7);
+  opacity: 0;
+  transition: opacity .8s;
+  z-index: 5;
+}
+body.stale #stage > :not(#stale-note):not(.lamps) { filter: grayscale(.85) brightness(.55); }
+body.stale .lamp:not(#lamp-link) { opacity: .4; }
+body.stale #lamp-link {
+  color: var(--red);
+  background: radial-gradient(90% 90% at 50% 45%, rgba(255, 50, 30, .34), rgba(255, 40, 20, .06) 70%), #120504;
+  box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgba(255, 70, 50, .55), 0 0 22px rgba(255, 40, 20, .4);
+}
+body.stale #stale-note { opacity: 1; }
+body.stale .lamp, body.stale .status i { animation-play-state: paused; }
