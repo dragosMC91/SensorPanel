@@ -6,7 +6,10 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-URL="${PANEL_URL:-http://localhost:8777/}"
+# Default page is the Pulse design; PANEL_URL=http://localhost:8777/ brings back
+# the original panel, or point it at any other designs/<name>/index.html.
+URL="${PANEL_URL:-http://localhost:8777/designs/pulse/index.html}"
+ORIGIN="${URL%%://*}://$(rest="${URL#*://}"; echo "${rest%%/*}")"   # scheme://host:port
 APP_ID="${PANEL_APP_ID:-sensorpanel}"          # must match the KWin rule
 PROFILE="${PANEL_PROFILE:-$HOME/.local/share/sensor-panel-chrome}"
 
@@ -22,9 +25,9 @@ if ! grep -q "sensor-panel-kiosk" "$HOME/.config/kwinrulesrc" 2>/dev/null \
 fi
 
 # Wait for the collector to answer before opening the page.
-echo "[kiosk] waiting for collector at $URL …"
+echo "[kiosk] waiting for collector at $ORIGIN …"
 for _ in $(seq 1 60); do
-  if curl -sf "${URL%/}/metrics" >/dev/null 2>&1; then break; fi
+  if curl -sf "$ORIGIN/metrics" >/dev/null 2>&1; then break; fi
   sleep 0.5
 done
 

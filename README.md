@@ -73,6 +73,14 @@ Then either open the kiosk now:
 ./launch-kiosk.sh   # full-screen on the Waveshare (HDMI-A-1)
 ```
 
+The kiosk opens the **Pulse** design (`designs/pulse/`) by default. To show the
+original panel or another design, set `PANEL_URL`:
+
+```bash
+PANEL_URL=http://localhost:8777/ ./launch-kiosk.sh                            # original
+PANEL_URL=http://localhost:8777/designs/verdict/index.html ./launch-kiosk.sh  # any design
+```
+
 …or just preview in a normal browser window: <http://localhost:8777/>.
 
 To exit the kiosk: `Alt+F4`, or `pkill -f sensor-panel-chrome`.
