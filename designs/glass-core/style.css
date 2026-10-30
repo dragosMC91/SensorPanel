@@ -120,15 +120,15 @@ html, body {
 
 #cpu-card { left: 20px;  top: 20px; width: 484px; height: 360px; }
 #gpu-card { left: 520px; top: 20px; width: 484px; height: 360px; }
-#mem-card   { left: 20px;  top: 396px; width: 236px; height: 184px; }
-#io-card    { left: 268px; top: 396px; width: 296px; height: 184px; }
-#store-card { left: 576px; top: 396px; width: 428px; height: 184px; }
+#mem-card   { left: 20px;  top: 396px; width: 244px; height: 184px; }
+#io-card    { left: 276px; top: 396px; width: 326px; height: 184px; }
+#store-card { left: 614px; top: 396px; width: 390px; height: 184px; }
 
 /* shared text atoms */
 .lbl {
   font-family: var(--med);
-  font-size: 13px;
-  letter-spacing: .16em;
+  font-size: 15px;
+  letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--label);
   white-space: nowrap;
@@ -151,20 +151,20 @@ html, body {
 }
 .title {
   font-family: var(--lite);
-  font-size: 22px;
-  letter-spacing: .32em;
+  font-size: 27px;
+  letter-spacing: .28em;
   color: var(--ink);
 }
-.model { font-family: var(--book); font-size: 14px; color: var(--faint); letter-spacing: .04em; }
+.model { font-family: var(--book); font-size: 17px; color: var(--faint); letter-spacing: .04em; }
 
 /* status chip: NOMINAL / IDLE / WARM / HOT */
 .chip {
   margin-left: auto;
   align-self: center;
   font-family: var(--med);
-  font-size: 13px;
-  letter-spacing: .18em;
-  padding: 4px 12px 4px 26px;
+  font-size: 15px;
+  letter-spacing: .14em;
+  padding: 4px 13px 4px 28px;
   border-radius: 99px;
   color: var(--tc);
   background: linear-gradient(90deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .03));
@@ -262,7 +262,7 @@ html, body {
 .num {
   position: relative;
   font-family: var(--thin);
-  font-size: 96px;
+  font-size: 118px;
   line-height: .95;
   letter-spacing: -.02em;
   color: var(--tc);
@@ -274,14 +274,14 @@ html, body {
   position: absolute; left: 100%; top: .16em;
   margin-left: 4px;
   font-family: var(--lite);
-  font-size: 26px;
+  font-size: 30px;
   color: var(--label);
 }
-.num.wide { font-size: 80px; }
+.num.wide { font-size: 90px; }
 .cap {
   margin-top: 6px;
   font-family: var(--med);
-  font-size: 13px; letter-spacing: .3em;
+  font-size: 16px; letter-spacing: .24em;
   text-transform: uppercase;
   color: var(--faint);
   padding-left: .3em;
@@ -289,19 +289,19 @@ html, body {
 
 /* ------------------------------------------------------------------ stats */
 .stats {
-  position: absolute; left: 286px; right: 28px; top: 66px;
-  display: flex; flex-direction: column; gap: 9px;
+  position: absolute; left: 280px; right: 24px; top: 60px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .stat { transition: --c 1.2s ease, --tc 1.2s ease; }
 .val {
-  margin-top: 4px;
+  margin-top: 2px;
   font-family: var(--xlite);
-  font-size: 42px;
+  font-size: 48px;
   line-height: 1;
   color: var(--tc);
   white-space: nowrap;
 }
-.val .u { font-size: 16px; margin-left: 6px; letter-spacing: .04em; }
+.val .u { font-size: 20px; margin-left: 6px; letter-spacing: .04em; }
 
 /* --------------------------------------------------------------- capsule bar
    Track + clip-pathed fill + a glowing leading edge carried by translateX on a
@@ -310,7 +310,7 @@ html, body {
   position: relative;
   display: block;
   height: 3px;
-  margin-top: 10px;
+  margin-top: 7px;
   border-radius: 99px;
   background: var(--track);
   transition: --p 1s var(--ease), --c 1.2s ease;
@@ -339,20 +339,20 @@ html, body {
 
 /* ----------------------------------------------------------------- footer */
 .foot {
-  position: absolute; left: 28px; right: 28px; bottom: 20px; height: 28px;
+  position: absolute; left: 28px; right: 28px; bottom: 16px; height: 30px;
   display: flex; align-items: center; gap: 16px;
   transition: --c 1.2s ease, --tc 1.2s ease;
 }
 .foot .bar { flex: 1; margin-top: 0; }
 .fval {
   font-family: var(--lite);
-  font-size: 22px;
+  font-size: 27px;
   color: var(--tc);
   white-space: nowrap;
   min-width: 5.4ch;
   text-align: right;
 }
-.fval .u { font-size: 14px; margin-left: 4px; }
+.fval .u { font-size: 17px; margin-left: 4px; }
 .pills { flex: 1; display: flex; gap: 5px; height: 8px; }
 .pills i {
   flex: 1;
@@ -366,73 +366,73 @@ html, body {
 }
 
 /* ============================================================ memory card */
-#mem-card { padding: 20px 24px 0 26px; transition: --c 1.2s ease, --tc 1.2s ease; }
-.memrow { margin-top: 12px; display: flex; align-items: flex-end; gap: 14px; }
+#mem-card { padding: 20px 20px 0 22px; transition: --c 1.2s ease, --tc 1.2s ease; }
+.memrow { margin-top: 12px; display: flex; align-items: flex-end; gap: 12px; }
 .mnum {
   font-family: var(--thin);
-  font-size: 66px;
+  font-size: 74px;
   line-height: .9;
   color: var(--tc);
   white-space: nowrap;
   letter-spacing: -.02em;
 }
-.mnum .u { font-family: var(--lite); font-size: 22px; margin-left: 3px; }
+.mnum .u { font-family: var(--lite); font-size: 26px; margin-left: 3px; }
 .mgb {
   font-family: var(--lite);
-  font-size: 16px;
+  font-size: 18px;
   color: var(--label);
   line-height: 1.25;
   padding-bottom: 6px;
   white-space: nowrap;
 }
-.mgb b { display: block; font-weight: normal; color: var(--ink); font-size: 18px; }
-#mem-card .bar { position: absolute; left: 26px; right: 26px; bottom: 30px; margin: 0; }
+.mgb b { display: block; font-weight: normal; color: var(--ink); font-size: 21px; }
+#mem-card .bar { position: absolute; left: 22px; right: 22px; bottom: 30px; margin: 0; }
 
 /* =============================================================== io card */
-#io-card { display: flex; padding: 20px 22px 0 24px; gap: 18px; }
+#io-card { display: flex; padding: 20px 18px 0 20px; gap: 10px; }
 .iocol { flex: 1; min-width: 0; }
 .iosep { width: 1px; margin: 4px 0 24px; background: linear-gradient(transparent, rgba(210, 230, 255, .14), transparent); }
-.iface { font-family: var(--book); letter-spacing: .04em; text-transform: none; color: var(--faint); margin-left: 4px; }
+.iface { font-family: var(--book); letter-spacing: .02em; text-transform: none; color: var(--faint); margin-left: 4px; }
 .io {
-  margin-top: 18px;
+  margin-top: 16px;
   display: flex; align-items: baseline;
   font-family: var(--xlite);
-  font-size: 32px;
+  font-size: 34px;
   line-height: 1;
   white-space: nowrap;
 }
 .io .dir {
   width: 18px; flex: none;
   font-family: var(--med);
-  font-size: 14px;
+  font-size: 16px;
   color: rgb(150, 212, 255);
   opacity: .8;
 }
-.io .u { font-size: 13px; margin-left: 5px; letter-spacing: .02em; }
+.io .u { font-size: 15px; margin-left: 4px; letter-spacing: .02em; }
 .io.idle .u { opacity: .5; }
 
 /* ========================================================== storage card */
-#store-card { padding: 18px 24px 0 26px; }
+#store-card { padding: 18px 22px 0 24px; }
 .shead { display: flex; align-items: center; justify-content: space-between; height: 26px; }
 .board {
   display: flex; align-items: baseline; gap: 10px;
   transition: --tc 1.2s ease;
 }
-.bval { font-family: var(--lite); font-size: 22px; color: var(--tc); white-space: nowrap; }
-.bval .u { font-size: 14px; margin-left: 3px; }
+.bval { font-family: var(--lite); font-size: 26px; color: var(--tc); white-space: nowrap; }
+.bval .u { font-size: 16px; margin-left: 3px; }
 
-.drives { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+.drives { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
 .drive {
   display: grid;
-  grid-template-columns: 104px 1fr 50px 56px;
+  grid-template-columns: 124px 1fr 54px 60px;
   align-items: center;
-  column-gap: 12px;
-  height: 28px;
+  column-gap: 10px;
+  height: 29px;
 }
 .drive .dname {
   font-family: var(--book);
-  font-size: 14px;
-  letter-spacing: .1em;
+  font-size: 18px;
+  letter-spacing: .04em;
   text-transform: uppercase;
   color: var(--label);
   white-space: nowrap;
@@ -440,13 +440,13 @@ html, body {
 .drive .bar { margin-top: 0; }
 .drive .dpct, .drive .dtemp {
   font-family: var(--lite);
-  font-size: 18px;
+  font-size: 22px;
   text-align: right;
   white-space: nowrap;
   color: var(--tc);
   transition: --tc 1.2s ease;
 }
-.drive .dpct .u, .drive .dtemp .u { font-size: 13px; margin-left: 2px; }
+.drive .dpct .u, .drive .dtemp .u { font-size: 15px; margin-left: 2px; }
 
 /* ================================================================== heat
    Hot cards get a warm rim; app.js already warms the colours. */

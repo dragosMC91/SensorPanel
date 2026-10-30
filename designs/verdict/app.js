@@ -283,6 +283,7 @@
       band.style.setProperty("--acc", rgb(ACC.none));
       body.classList.remove("alarm");
       renderChips([], true, 0, false);
+      fitWorkload();
       dwell.head.cur = dwell.work.cur = null;
       return;
     }
@@ -330,6 +331,7 @@
     const order = issues(d).map((x) => x.key);
     shown.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
     renderChips(shown, false, rest.length - take, head.key === "cool");
+    fitWorkload();
   }
 
   function setHeadline(text, val) {
@@ -349,6 +351,15 @@
     let size = 92;
     h.style.fontSize = size + "px";
     while (h.scrollWidth > room && size > 56) { size -= 4; h.style.fontSize = size + "px"; }
+  }
+
+  // the workload line shares its row with the chips; shrink it only when a
+  // long phrase meets a full row of chips, so the two never collide
+  function fitWorkload() {
+    const w = $("workload");
+    let size = 34;
+    w.style.fontSize = size + "px";
+    while (w.scrollWidth > w.clientWidth && size > 22) { size -= 2; w.style.fontSize = size + "px"; }
   }
 
   let chipSig = null;
