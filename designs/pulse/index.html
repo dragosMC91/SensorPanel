@@ -16,10 +16,10 @@
     <!-- ================================================================ bar -->
     <header id="bar">
       <span class="brand"><i class="beat" id="beat"></i>Pulse</span>
-      <span class="sub">1 s samples · 2 min window</span>
+      <span class="sub">last 2 min</span>
       <span class="legend">
         <span><i class="key k-load"></i>load</span>
-        <span><i class="key k-temp"></i>temperature</span>
+        <span><i class="key k-temp"></i>temp</span>
         <span><i class="key k-in"></i>in</span>
         <span><i class="key k-out"></i>out</span>
       </span>
@@ -113,8 +113,8 @@
           <div class="chart spark" id="gpu-clock-spark"></div>
         </div>
         <div class="stat" id="gpu-vram-s">
-          <div class="lbl">VRAM</div>
-          <div class="val" id="gpu-vram"><span class="v">–</span><span class="u">/16 GB</span></div>
+          <div class="lbl">VRAM<span class="note" id="gpu-vram-total"></span></div>
+          <div class="val" id="gpu-vram"><span class="v">–</span><span class="u">GB</span></div>
           <div class="chart spark" id="gpu-vram-spark"></div>
         </div>
       </div>
@@ -124,7 +124,7 @@
     <section class="panel small" id="mem">
       <header class="shead"><span class="lbl">Memory</span><span class="tag">DDR4</span></header>
       <div class="num mid" id="mem-pct"><span class="v">–</span><span class="u">%</span></div>
-      <div class="gb" id="mem-gb"><span class="v">–</span><span class="u">of 62.7 GB</span></div>
+      <div class="gb" id="mem-gb"><span class="v">–</span><span class="u">/ 62.7 GB</span></div>
       <div class="chart mini" id="mem-chart"></div>
     </section>
 
@@ -143,7 +143,7 @@
 
     <!-- =============================================================== disk -->
     <section class="panel small io" id="disk">
-      <header class="shead"><span class="lbl">Disk</span><span class="tag">all drives</span></header>
+      <header class="shead"><span class="lbl">Disk</span></header>
       <div class="pair">
         <div class="rate in" id="disk-read"><i class="dir">R</i><span class="v">–</span><span class="u">MB/s</span></div>
         <div class="rate out" id="disk-write"><i class="dir">W</i><span class="v">–</span><span class="u">MB/s</span></div>
@@ -158,9 +158,8 @@
     <section class="panel small" id="store">
       <header class="shead">
         <span class="lbl">Storage</span>
-        <span class="board" id="mobo-s"><span class="tag">X570 board</span><span class="bval" id="mobo"><span class="v">–</span><span class="u">°C</span></span></span>
+        <span class="board" id="mobo-s"><span class="tag">Board</span><span class="bval" id="mobo"><span class="v">–</span><span class="u">°C</span></span></span>
       </header>
-      <div class="dhead"><span>used</span><span>temp</span></div>
       <div class="drives" id="drives"><!-- 4 rows built by app.js --></div>
     </section>
 

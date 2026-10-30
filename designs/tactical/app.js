@@ -246,7 +246,7 @@
     /* ---- memory ---- */
     bind("mem-pct", mem.percent, fixed(0), mL);
     bind("mem-used", mem.used_gb, fixed(1), mL);
-    $("mem-tot").textContent = ` / ${ok(mem.total_gb) ? mem.total_gb.toFixed(1) : DASH} GB`;
+    $("mem-tot").textContent = `/${ok(mem.total_gb) ? mem.total_gb.toFixed(1) : DASH} GB`;
     led("mem-bar", mem.percent);
     const mIss = [];
     if (ok(mem.percent) && mem.percent >= 97) mIss.push([2, "MEM CRIT"]);
@@ -256,7 +256,7 @@
     present += ok(mem.percent);
 
     /* ---- network / disk I/O ---- */
-    $("iface").textContent = net.iface ? "IF " + String(net.iface).toUpperCase() : "IF —";
+    $("iface").textContent = net.iface ? String(net.iface).toUpperCase() : "NO IF";
     bind("net-dn", net.down_bps, rate);
     bind("net-up", net.up_bps, rate);
     bind("dsk-rd", disk.read_bps, rate);

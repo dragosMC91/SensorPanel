@@ -347,8 +347,8 @@
   // the headline is sized for its longest phrase; shrink only if one overflows
   function fitHeadline() {
     const h = $("headline");
-    const room = 1024 - 72;
-    let size = 92;
+    const room = 1024 - 64;
+    let size = 88;
     h.style.fontSize = size + "px";
     while (h.scrollWidth > room && size > 56) { size -= 4; h.style.fontSize = size + "px"; }
   }
@@ -357,9 +357,9 @@
   // long phrase meets a full row of chips, so the two never collide
   function fitWorkload() {
     const w = $("workload");
-    let size = 34;
+    let size = 38;
     w.style.fontSize = size + "px";
-    while (w.scrollWidth > w.clientWidth && size > 22) { size -= 2; w.style.fontSize = size + "px"; }
+    while (w.scrollWidth > w.clientWidth && size > 26) { size -= 2; w.style.fontSize = size + "px"; }
   }
 
   let chipSig = null;
@@ -404,17 +404,17 @@
     bar($("t-" + side + "-temp"), isNum(s.temp) ? (s.temp - 25) / (limit - 25) * 100 : null);
     tint($("t-" + side + "-temp"), ramp(s.temp, tempStops));
     hr(side + "-temp-hr", !isNum(s.temp) ? "" :
-       s.temp < limit ? `${Math.round(limit - s.temp)}° to limit` : `${Math.round(s.temp - limit)}° over`);
+       s.temp < limit ? `${Math.round(limit - s.temp)}° left` : `${Math.round(s.temp - limit)}° over`);
 
     bind(side + "-power", s.power, int);
     bar($("t-" + side + "-power"), isNum(s.power) ? s.power / maxPower * 100 : null);
     tint($("t-" + side + "-power"), isNum(s.power) ? ramp(s.power / maxPower, RAMP.power) : 0);
-    hr(side + "-power-hr", isNum(s.power) ? `${Math.max(0, Math.round(maxPower - s.power))} W spare` : "");
+    hr(side + "-power-hr", isNum(s.power) ? `${Math.max(0, Math.round(maxPower - s.power))} W free` : "");
 
     bind(side + "-clock", s.clock, int);
     bar($("t-" + side + "-clock"), isNum(s.clock) ? s.clock / maxClock * 100 : null);
     tint($("t-" + side + "-clock"), 0);
-    hr(side + "-clock-hr", isNum(s.clock) ? `${Math.min(100, Math.round(s.clock / maxClock * 100))}% of max` : "");
+    hr(side + "-clock-hr", isNum(s.clock) ? `${Math.min(100, Math.round(s.clock / maxClock * 100))}% max` : "");
   }
 
   function render(d) {
@@ -474,7 +474,7 @@
     bar($("t-mobo"), isNum(d.mobo_temp) ? (d.mobo_temp - 20) / (mLimit - 20) * 100 : null);
     tint($("t-mobo"), ramp(d.mobo_temp, RAMP.moboTemp));
     hr("mobo-hr", !isNum(d.mobo_temp) ? "" :
-       d.mobo_temp < mLimit ? `${Math.round(mLimit - d.mobo_temp)}° spare` : `${Math.round(d.mobo_temp - mLimit)}° over`);
+       d.mobo_temp < mLimit ? `${Math.round(mLimit - d.mobo_temp)}° left` : `${Math.round(d.mobo_temp - mLimit)}° over`);
 
     const any = [cpu.usage, cpu.temp, gpu.usage, gpu.temp, mem.percent, d.mobo_temp].some(isNum);
     renderVerdict(d, any);

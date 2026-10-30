@@ -17,7 +17,6 @@
     <header id="top">
       <span class="id">MFD-7</span>
       <span class="sys">SYS.MON</span>
-      <span class="hw">PG.1 <i>/</i> STATUS</span>
       <div id="master" class="na"><span id="master-t">AWAITING DATA</span></div>
       <span class="smp">SMP <b id="smp">000000</b></span>
       <span id="link" class="tag">LINK</span>
@@ -26,12 +25,12 @@
 
     <!-- ================================================================ CPU -->
     <section class="pnl main" id="p-cpu">
-      <div class="ph"><b>CPU</b><span>R9 3900X · 12C/24T</span><em class="tag na" id="cpu-tag">—</em></div>
+      <div class="ph"><b>CPU</b><span>R9 3900X</span><em class="tag na" id="cpu-tag">—</em></div>
 
       <div class="tape" id="cpu-tape" style="--z1:47.5;--z2:72.5">
-        <div class="tl">CPU.TMP</div>
+        <div class="tl">TEMP</div>
         <div class="tt">
-          <div class="scale"><span style="--y:0">20</span><span style="--y:25">40</span><span style="--y:50">60</span><span style="--y:75">80</span><span style="--y:100">100</span></div>
+          <div class="scale"><span style="--y:0">20</span><span style="--y:25">40</span><span style="--y:50">60</span><span style="--y:75">80</span></div>
           <div class="ticks"></div>
           <div class="col"><i></i></div>
           <div class="ptr"><span class="num" id="cpu-temp">–</span><small>°C</small></div>
@@ -39,23 +38,22 @@
       </div>
 
       <div class="body">
-        <div class="lbl">CPU.LOAD <span>UTIL %</span></div>
+        <div class="lbl">LOAD <span>UTIL %</span></div>
         <div class="big rd"><span class="num" id="cpu-load" data-pad="3"><s></s><b>–</b></span><span class="u">%</span></div>
         <div class="led big-led" id="cpu-load-bar" style="--z1:70;--z2:88"><i></i></div>
-        <div class="scl"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
 
-        <div class="row rd"><span class="k">CPU.PWR</span><span class="num" id="cpu-pwr">–</span><span class="u">W</span>
+        <div class="row rd"><span class="k">PWR</span><span class="num" id="cpu-pwr">–</span><span class="u">W</span>
           <div class="led thin" id="cpu-pwr-bar" style="--z1:55;--z2:80"><i></i></div></div>
-        <div class="row rd"><span class="k">CPU.CLK</span><span class="num" id="cpu-clk">–</span><span class="u">MHz</span>
+        <div class="row rd"><span class="k">CLK</span><span class="num" id="cpu-clk">–</span><span class="u">MHz</span>
           <div class="led thin neutral" id="cpu-clk-bar"><i></i></div></div>
-        <div class="row rd"><span class="k">CPU.ACT</span><span class="num" id="cpu-act">–</span><span class="u">CORE</span>
+        <div class="row rd"><span class="k">ACT</span><span class="num" id="cpu-act">–</span><span class="u">CORE</span>
           <div class="pips" id="cpu-pips"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       </div>
     </section>
 
     <!-- ============================================================== SCOPE -->
     <section class="pnl main" id="p-scope">
-      <div class="ph"><b>SCOPE</b><span>LOAD TRACK</span><em class="rng">RNG 100%</em></div>
+      <div class="ph"><b>SCOPE</b><span>R = LOAD</span></div>
       <div class="scope">
         <div class="grid"></div>
         <div class="bezel"></div>
@@ -68,17 +66,16 @@
         <div class="blip lo" id="b-mem" style="--a:225"><i></i><span>MEM</span></div>
         <div class="hub"></div>
       </div>
-      <div class="sfoot"><span>TRK 4</span><span>SWP 6.0s</span><span>R = LOAD</span></div>
     </section>
 
     <!-- ================================================================ GPU -->
     <section class="pnl main" id="p-gpu">
-      <div class="ph"><b>GPU</b><span>RX 6800 · 16 GB</span><em class="tag na" id="gpu-tag">—</em></div>
+      <div class="ph"><b>GPU</b><span>RX 6800</span><em class="tag na" id="gpu-tag">—</em></div>
 
       <div class="tape right" id="gpu-tape" style="--z1:47.5;--z2:75">
-        <div class="tl">GPU.TMP</div>
+        <div class="tl">TEMP</div>
         <div class="tt">
-          <div class="scale"><span style="--y:0">20</span><span style="--y:25">40</span><span style="--y:50">60</span><span style="--y:75">80</span><span style="--y:100">100</span></div>
+          <div class="scale"><span style="--y:0">20</span><span style="--y:25">40</span><span style="--y:50">60</span><span style="--y:75">80</span></div>
           <div class="ticks"></div>
           <div class="col"><i></i></div>
           <div class="ptr"><span class="num" id="gpu-temp">–</span><small>°C</small></div>
@@ -86,27 +83,27 @@
       </div>
 
       <div class="body">
-        <div class="lbl">GPU.LOAD <span>UTIL %</span></div>
+        <div class="lbl">LOAD <span>UTIL %</span></div>
         <div class="big rd"><span class="num" id="gpu-load" data-pad="3"><s></s><b>–</b></span><span class="u">%</span></div>
         <div class="led big-led" id="gpu-load-bar" style="--z1:70;--z2:88"><i></i></div>
-        <div class="scl"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
 
-        <div class="row rd"><span class="k">GPU.PWR</span><span class="num" id="gpu-pwr">–</span><span class="u">W</span>
+        <div class="row rd"><span class="k">PWR</span><span class="num" id="gpu-pwr">–</span><span class="u">W</span>
           <div class="led thin" id="gpu-pwr-bar" style="--z1:55;--z2:80"><i></i></div></div>
-        <div class="row rd"><span class="k">GPU.CLK</span><span class="num" id="gpu-clk">–</span><span class="u">MHz</span>
+        <div class="row rd"><span class="k">CLK</span><span class="num" id="gpu-clk">–</span><span class="u">MHz</span>
           <div class="led thin neutral" id="gpu-clk-bar"><i></i></div></div>
-        <div class="row rd"><span class="k">GPU.VRAM</span><span class="num" id="gpu-vram">–</span><span class="u" id="gpu-vram-u">/16 GB</span>
+        <div class="row rd"><span class="k">VRAM</span><span class="num" id="gpu-vram">–</span><span class="u" id="gpu-vram-u">/16 GB</span>
           <div class="led thin" id="gpu-vram-bar" style="--z1:70;--z2:88"><i></i></div></div>
       </div>
     </section>
 
     <!-- ============================================================ MEMORY -->
     <section class="pnl mid" id="p-mem">
-      <div class="ph"><b>MEM</b><span>DDR4 · 62.7 GB</span><em class="tag na" id="mem-tag">—</em></div>
+      <div class="ph"><b>MEM</b><span>DDR4</span><em class="tag na" id="mem-tag">—</em></div>
       <div class="memb">
         <div class="mbig rd"><span class="num" id="mem-pct" data-pad="3"><s></s><b>–</b></span><span class="u">%</span></div>
         <div class="mside">
-          <div class="mline"><span class="k">USED</span><span class="rd"><span class="num" id="mem-used">–</span><span class="u" id="mem-tot"> / – GB</span></span></div>
+          <div class="k">USED</div>
+          <div class="mline rd"><span class="num" id="mem-used">–</span><span class="u" id="mem-tot">/– GB</span></div>
           <div class="led" id="mem-bar" style="--z1:70;--z2:88"><i></i></div>
         </div>
       </div>
@@ -114,46 +111,46 @@
 
     <!-- =========================================================== NETWORK -->
     <section class="pnl mid io" id="p-net">
-      <div class="ph"><b>NET</b><span id="iface">IFACE —</span><em class="rng">LOG</em></div>
-      <div class="io-row"><span class="ar dn"></span><span class="k">NET.RX</span><span class="num" id="net-dn">–</span><span class="u" id="net-dn-u">B/s</span>
+      <div class="ph"><b>NET</b><span id="iface">NO IF</span><em class="rng">LOG</em></div>
+      <div class="io-row"><span class="ar dn"></span><span class="k">RX</span><span class="num" id="net-dn">–</span><span class="u" id="net-dn-u">B/s</span>
         <div class="led thin io-bar" id="net-dn-bar"><i></i></div></div>
-      <div class="io-row"><span class="ar up"></span><span class="k">NET.TX</span><span class="num" id="net-up">–</span><span class="u" id="net-up-u">B/s</span>
+      <div class="io-row"><span class="ar up"></span><span class="k">TX</span><span class="num" id="net-up">–</span><span class="u" id="net-up-u">B/s</span>
         <div class="led thin io-bar" id="net-up-bar"><i></i></div></div>
     </section>
 
     <!-- ============================================================== DISK -->
     <section class="pnl mid io" id="p-dsk">
-      <div class="ph"><b>DSK</b><span>I/O · ALL DRIVES</span><em class="rng">LOG</em></div>
-      <div class="io-row"><span class="ar dn"></span><span class="k">DSK.RD</span><span class="num" id="dsk-rd">–</span><span class="u" id="dsk-rd-u">B/s</span>
+      <div class="ph"><b>DSK</b><span>ALL DRIVES</span><em class="rng">LOG</em></div>
+      <div class="io-row"><span class="ar dn"></span><span class="k">RD</span><span class="num" id="dsk-rd">–</span><span class="u" id="dsk-rd-u">B/s</span>
         <div class="led thin io-bar" id="dsk-rd-bar"><i></i></div></div>
-      <div class="io-row"><span class="ar up"></span><span class="k">DSK.WR</span><span class="num" id="dsk-wr">–</span><span class="u" id="dsk-wr-u">B/s</span>
+      <div class="io-row"><span class="ar up"></span><span class="k">WR</span><span class="num" id="dsk-wr">–</span><span class="u" id="dsk-wr-u">B/s</span>
         <div class="led thin io-bar" id="dsk-wr-bar"><i></i></div></div>
     </section>
 
     <!-- ============================================================ DRIVES -->
     <section class="pnl low" id="p-drv">
-      <div class="ph"><b>STOR</b><span>4 DRV · TEMP / SPACE USED</span><em class="tag na" id="drv-tag">—</em></div>
+      <div class="ph"><b>STOR</b><span>TEMP / SPACE USED</span><em class="tag na" id="drv-tag">—</em></div>
       <div class="drives">
         <div class="drv" id="drv0"><div class="dh"><span class="dn">D0</span><span class="dl">—</span><em></em></div>
-          <div class="dv"><span class="k">TMP</span><span class="num t" id="drv0-t">–</span><span class="k">USE</span><span class="num p" id="drv0-p">–</span></div>
+          <div class="dv"><span class="num t" id="drv0-t">–</span><span class="num p" id="drv0-p">–</span></div>
           <div class="led thin" id="drv0-bar" style="--z1:72;--z2:88"><i></i></div></div>
         <div class="drv" id="drv1"><div class="dh"><span class="dn">D1</span><span class="dl">—</span><em></em></div>
-          <div class="dv"><span class="k">TMP</span><span class="num t" id="drv1-t">–</span><span class="k">USE</span><span class="num p" id="drv1-p">–</span></div>
+          <div class="dv"><span class="num t" id="drv1-t">–</span><span class="num p" id="drv1-p">–</span></div>
           <div class="led thin" id="drv1-bar" style="--z1:72;--z2:88"><i></i></div></div>
         <div class="drv" id="drv2"><div class="dh"><span class="dn">D2</span><span class="dl">—</span><em></em></div>
-          <div class="dv"><span class="k">TMP</span><span class="num t" id="drv2-t">–</span><span class="k">USE</span><span class="num p" id="drv2-p">–</span></div>
+          <div class="dv"><span class="num t" id="drv2-t">–</span><span class="num p" id="drv2-p">–</span></div>
           <div class="led thin" id="drv2-bar" style="--z1:72;--z2:88"><i></i></div></div>
         <div class="drv" id="drv3"><div class="dh"><span class="dn">D3</span><span class="dl">—</span><em></em></div>
-          <div class="dv"><span class="k">TMP</span><span class="num t" id="drv3-t">–</span><span class="k">USE</span><span class="num p" id="drv3-p">–</span></div>
+          <div class="dv"><span class="num t" id="drv3-t">–</span><span class="num p" id="drv3-p">–</span></div>
           <div class="led thin" id="drv3-bar" style="--z1:72;--z2:88"><i></i></div></div>
       </div>
     </section>
 
     <!-- ============================================================== MOBO -->
     <section class="pnl low" id="p-mb">
-      <div class="ph"><b>MOBO</b><span>X570</span></div>
+      <div class="ph"><b>MOBO</b></div>
       <div class="mb">
-        <div class="k">MB.TMP</div>
+        <div class="k">X570</div>
         <div class="mbv rd"><span class="num" id="mb-t">–</span><span class="u">°C</span></div>
         <div class="led thin" id="mb-bar" style="--z1:26.7;--z2:46.7"><i></i></div>
       </div>

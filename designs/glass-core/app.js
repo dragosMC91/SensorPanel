@@ -246,7 +246,7 @@
     gauge($("mem-bar"), mem.percent);
     heat($("mem-card"), ramp(mem.percent, RAMP.load));
     bind("mem-gb", mem.used_gb, (v) => ({
-      text: v.toFixed(1) + " GB",
+      text: v.toFixed(1),
       unit: "of " + (isNum(mem.total_gb) ? mem.total_gb.toFixed(1) : DASH) + " GB",
     }));
     $("mem-gb").classList.toggle("na", !isNum(mem.used_gb));

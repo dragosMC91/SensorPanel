@@ -378,7 +378,7 @@
       if (then === null) continue;
       const d = cur - then;
       if (Math.abs(d) < 1.5) return "steady";
-      return (d > 0 ? "▲ " : "▼ ") + Math.abs(d).toFixed(0) + "° / " + back + "s";
+      return (d > 0 ? "▲ " : "▼ ") + Math.abs(d).toFixed(0) + "°";
     }
     return "";
   }
@@ -422,7 +422,7 @@
     bind(u + "-power", s.power, int);
     heat($(u + "-power-s"), tPow);
     const ps = stats(pow);
-    $(u + "-power-peak").textContent = ps && ps.n > 3 ? "peak " + Math.round(ps.max) : "";
+    $(u + "-power-peak").textContent = ps && ps.n > 3 ? "max " + Math.round(ps.max) : "";
 
     bind(u + "-clock", s.clock, int);
     heat($(u + "-clock-s"), 0);
@@ -446,8 +446,8 @@
     const vramOk = isNum(gpu.vram_used_gb) && isNum(gpu.vram_total_gb) && gpu.vram_total_gb > 0;
     const vramPct = vramOk ? (isNum(gpu.vram_pct) ? gpu.vram_pct : gpu.vram_used_gb / gpu.vram_total_gb * 100) : null;
     push("gpuVram", vramPct);
-    bind("gpu-vram", vramOk ? gpu.vram_used_gb : null, (v) => ({
-      text: v.toFixed(1), unit: "/" + gpu.vram_total_gb.toFixed(0) + " GB" }));
+    bind("gpu-vram", vramOk ? gpu.vram_used_gb : null, (v) => v.toFixed(1));
+    $("gpu-vram-total").textContent = vramOk ? "of " + gpu.vram_total_gb.toFixed(0) : "";
     heat($("gpu-vram-s"), ramp(vramPct, RAMP.load));
 
     // memory
@@ -456,8 +456,8 @@
     heat($("mem"), ramp(mem.percent, RAMP.load), HUES.mem);
     $("mem-pct").style.color = "var(--tc)";
     bind("mem-gb", mem.used_gb, (v) => ({
-      text: v.toFixed(1) + " GB",
-      unit: "of " + (isNum(mem.total_gb) ? mem.total_gb.toFixed(1) : DASH) + " GB",
+      text: v.toFixed(1),
+      unit: "/ " + (isNum(mem.total_gb) ? mem.total_gb.toFixed(1) : DASH) + " GB",
     }));
 
     // network + disk, each auto-scaled to its own rolling maximum

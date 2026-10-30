@@ -77,14 +77,14 @@ html, body {
 
 /* ===================================================================== bar */
 #bar {
-  position: absolute; left: 20px; right: 20px; top: 8px; height: 28px;
+  position: absolute; left: 18px; right: 18px; top: 5px; height: 30px;
   display: flex; align-items: center; gap: 16px;
-  font-family: var(--condb); font-size: 15px; color: var(--label);
-  letter-spacing: .04em;
+  font-family: var(--condb); font-size: 18px; color: var(--label);
+  letter-spacing: .02em;
 }
 .brand {
   display: flex; align-items: center; gap: 9px;
-  font-family: var(--cond); font-size: 18px; letter-spacing: .3em; text-transform: uppercase;
+  font-family: var(--cond); font-size: 22px; letter-spacing: .2em; text-transform: uppercase;
   color: var(--ink);
 }
 /* the heartbeat: restarts on every sample, so it doubles as a liveness light */
@@ -99,15 +99,15 @@ html, body {
   60%  { transform: scale(1);   box-shadow: 0 0 0 9px rgba(70, 228, 214, 0); }
   100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(70, 228, 214, 0); }
 }
-.sub { color: var(--faint); }
-.legend { margin-left: auto; display: flex; gap: 16px; color: var(--label); font-size: 15px; }
+.sub { color: var(--label); }
+.legend { margin-left: auto; display: flex; gap: 16px; color: var(--label); font-size: 18px; }
 .legend span { display: flex; align-items: center; gap: 6px; }
-.key { width: 16px; height: 3px; border-radius: 2px; }
+.key { width: 18px; height: 4px; border-radius: 2px; }
 .k-load { background: linear-gradient(90deg, var(--cpu), var(--gpu)); }
 .k-temp { background: var(--temp); }
 .k-in   { background: var(--in); }
 .k-out  { background: var(--out); }
-.clock { font-family: var(--cond); font-size: 17px; color: var(--label); letter-spacing: .06em; min-width: 72px; text-align: right; }
+.clock { font-family: var(--cond); font-size: 20px; color: var(--label); letter-spacing: .02em; min-width: 76px; text-align: right; }
 
 /* ================================================================== panels */
 .panel {
@@ -120,12 +120,12 @@ html, body {
     0 18px 40px -20px rgba(0, 0, 0, .8);
   transition: box-shadow 1.2s ease;
 }
-#cpu   { left: 12px;  top: 42px;  width: 494px; height: 334px; --hue: var(--cpu); }
-#gpu   { left: 518px; top: 42px;  width: 494px; height: 334px; --hue: var(--gpu); }
-#mem   { left: 12px;  top: 388px; width: 184px; height: 200px; --hue: var(--mem); }
-#net   { left: 208px; top: 388px; width: 254px; height: 200px; }
-#disk  { left: 474px; top: 388px; width: 254px; height: 200px; }
-#store { left: 740px; top: 388px; width: 272px; height: 200px; }
+#cpu   { left: 12px;  top: 40px;  width: 494px; height: 342px; --hue: var(--cpu); }
+#gpu   { left: 518px; top: 40px;  width: 494px; height: 342px; --hue: var(--gpu); }
+#mem   { left: 12px;  top: 392px; width: 196px; height: 202px; --hue: var(--mem); }
+#net   { left: 220px; top: 392px; width: 232px; height: 202px; }
+#disk  { left: 464px; top: 392px; width: 232px; height: 202px; }
+#store { left: 708px; top: 392px; width: 304px; height: 202px; }
 
 /* a hairline of the series hue across the top edge, warming with heat */
 .unit::before {
@@ -143,11 +143,11 @@ html, body {
 
 /* shared text atoms */
 .lbl {
-  font-family: var(--cond); font-size: 14px;
-  letter-spacing: .13em; text-transform: uppercase;
+  font-family: var(--cond); font-size: 18px;
+  letter-spacing: .04em; text-transform: uppercase;
   color: var(--label); white-space: nowrap;
 }
-.tag { font-family: var(--condb); font-size: 14px; color: var(--label); letter-spacing: .04em; white-space: nowrap; }
+.tag { font-family: var(--condb); font-size: 18px; color: var(--label); letter-spacing: .01em; white-space: nowrap; }
 .u { font-family: var(--book); color: var(--label); white-space: nowrap; }
 .v { display: inline-block; white-space: nowrap; }
 
@@ -158,23 +158,23 @@ html, body {
 
 /* ------------------------------------------------------------- unit head */
 .head {
-  position: absolute; left: 20px; right: 16px; top: 12px; height: 26px;
+  position: absolute; left: 16px; right: 12px; top: 9px; height: 32px;
   display: flex; align-items: center; gap: 12px;
 }
-.title { font-family: var(--cond); font-size: 22px; letter-spacing: .24em; color: var(--ink); }
-.model { font-family: var(--condb); font-size: 16px; color: var(--label); letter-spacing: .03em; }
+.title { font-family: var(--cond); font-size: 28px; letter-spacing: .14em; color: var(--ink); }
+.model { font-family: var(--condb); font-size: 20px; color: var(--label); letter-spacing: 0; }
 .chip {
   margin-left: auto; position: relative;
-  font-family: var(--cond); font-size: 14px; letter-spacing: .14em;
-  padding: 4px 12px 4px 26px; border-radius: 99px;
+  font-family: var(--cond); font-size: 18px; letter-spacing: .06em;
+  padding: 3px 13px 3px 28px; border-radius: 99px;
   color: var(--tc);
   background: rgba(255, 255, 255, .045);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
   transition: color .8s;
 }
 .chip::before {
-  content: ""; position: absolute; left: 10px; top: 50%;
-  width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%;
+  content: ""; position: absolute; left: 11px; top: 50%;
+  width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
   background: var(--c); box-shadow: 0 0 8px 1px var(--c);
 }
 .nodata .chip { color: var(--faint); }
@@ -183,28 +183,28 @@ html, body {
 @keyframes blink { 50% { opacity: .2; } }
 
 /* ------------------------------------------------------------- unit body */
-.body { position: absolute; left: 18px; right: 16px; top: 46px; height: 166px; }
+.body { position: absolute; left: 14px; right: 14px; top: 46px; height: 170px; }
 
-.hero { position: absolute; left: 0; top: 0; width: 128px; height: 166px; }
+.hero { position: absolute; left: 0; top: 0; width: 152px; height: 170px; }
 .num { font-family: var(--xlite); line-height: 1; white-space: nowrap; color: var(--tc); transition: --tc 1.2s ease; }
-.hero .num { font-size: 70px; letter-spacing: -.02em; margin-left: -3px; }
-.hero .num.wide { font-size: 58px; }
-.hero .num .u { font-family: var(--lite); font-size: 24px; margin-left: 3px; vertical-align: 31px; color: var(--label); }
-.hero .num.wide .u { vertical-align: 24px; }
+.hero .num { font-size: 82px; letter-spacing: -.02em; margin-left: -4px; }
+.hero .num.wide { font-size: 66px; }
+.hero .num .u { font-family: var(--lite); font-size: 28px; margin-left: 3px; vertical-align: 36px; color: var(--label); }
+.hero .num.wide .u { vertical-align: 26px; }
 .cap {
-  margin-top: 4px;
-  font-family: var(--cond); font-size: 14px; letter-spacing: .24em; text-transform: uppercase;
+  margin-top: 0;
+  font-family: var(--cond); font-size: 18px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--c); transition: --c 1.2s ease;
 }
-.agg { position: absolute; left: 0; right: 0; bottom: -18px; }   /* hangs below the chart, beside the time axis */
-.agg .row { display: flex; align-items: baseline; justify-content: space-between; padding-right: 10px; }
-.agg .k { font-family: var(--cond); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
-.agg .pv { font-family: var(--lite); font-size: 22px; color: var(--ink); white-space: nowrap; }
+.agg { position: absolute; left: 0; right: 0; bottom: -24px; }   /* hangs below the chart, beside the time axis */
+.agg .row { display: flex; align-items: baseline; justify-content: space-between; padding-right: 6px; }
+.agg .k { font-family: var(--cond); font-size: 18px; letter-spacing: .06em; text-transform: uppercase; color: var(--label); }
+.agg .pv { font-family: var(--lite); font-size: 30px; line-height: 32px; color: var(--ink); white-space: nowrap; }
 .agg .ago {
-  font-family: var(--condb); font-size: 14px; color: var(--faint);
-  height: 17px; margin: 0 0 4px; padding-right: 10px; text-align: right; white-space: nowrap;
+  font-family: var(--condb); font-size: 17px; line-height: 18px; color: var(--label);
+  height: 18px; margin: 0; padding-right: 6px; text-align: right; white-space: nowrap;
 }
-.agg .row + .ago { border-bottom: 1px solid var(--rule); padding-bottom: 3px; height: 21px; }
+.agg .row + .ago { border-bottom: 1px solid var(--rule); padding-bottom: 3px; height: 23px; margin-bottom: 3px; }
 
 /* ================================================================== charts */
 .chart { position: absolute; }
@@ -263,12 +263,12 @@ html, body {
 /* collecting state: an empty grid with a quiet note */
 .chart.empty::after {
   content: "collecting"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-family: var(--cond); font-size: 14px; letter-spacing: .24em; text-transform: uppercase;
+  font-family: var(--cond); font-size: 18px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--faint);
 }
 .chart.void::after {
   content: "no data"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-family: var(--cond); font-size: 14px; letter-spacing: .24em; text-transform: uppercase;
+  font-family: var(--cond); font-size: 18px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--faint);
 }
 .chart.spark.empty::after, .chart.mini.empty::after,
@@ -277,7 +277,7 @@ html, body {
 
 /* ------------------------------------------------------------- big chart */
 .chart.big {
-  left: 140px; right: 30px; top: 0; height: 166px;
+  left: 164px; right: 36px; top: 0; height: 170px;
   border-radius: 10px;
   background:
     linear-gradient(90deg, transparent calc(50% - .5px), var(--rule) calc(50% - .5px), var(--rule) calc(50% + .5px), transparent calc(50% + .5px)),
@@ -293,51 +293,52 @@ html, body {
 }
 .chart .ax {
   position: absolute; bottom: calc(var(--y) * 1%);
-  font-family: var(--condb); font-size: 13px; line-height: 1; white-space: nowrap;
+  font-family: var(--condb); font-size: 17px; line-height: 1; white-space: nowrap;
   pointer-events: none;
 }
-.chart .ax.l { left: 6px; margin-bottom: 3px; color: color-mix(in srgb, var(--hue) 55%, transparent); z-index: 2; }
-.chart .ax.r { right: -30px; margin-bottom: -6px; color: rgba(236, 240, 250, .55); }
+.chart .ax.l { left: 6px; margin-bottom: 3px; color: color-mix(in srgb, var(--hue) 75%, white 10%); z-index: 2;
+               text-shadow: 0 0 3px #05070a, 0 0 6px #05070a, 0 0 2px #05070a; }
+.chart .ax.r { right: -35px; margin-bottom: -8px; color: rgba(236, 240, 250, .7); }
 
 .taxis {
-  position: absolute; left: 158px; right: 46px; top: 213px; height: 16px;
+  position: absolute; left: 180px; right: 52px; top: 219px; height: 20px;
   display: flex; justify-content: space-between;
-  font-family: var(--condb); font-size: 13px; letter-spacing: .04em; color: var(--faint);
+  font-family: var(--condb); font-size: 17px; line-height: 20px; letter-spacing: 0; color: var(--label);
 }
 
 /* ------------------------------------------------------------- stat cells */
 .stats {
-  position: absolute; left: 18px; right: 16px; top: 236px; bottom: 12px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  position: absolute; left: 10px; right: 10px; top: 244px; bottom: 10px;
+  display: grid; grid-template-columns: 104fr 120fr 118fr 114fr; gap: 6px;
 }
 .stat {
-  position: relative; padding: 7px 9px 0;
+  position: relative; padding: 6px 7px 0;
   border-radius: 10px;
   background: rgba(0, 0, 0, .16);
   box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
 }
-.stat .lbl { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; letter-spacing: .06em; }
-.stat .note { font-family: var(--condb); font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--tc); opacity: .85; }
-.stat .val { margin-top: 1px; font-family: var(--lite); font-size: 27px; line-height: 1.05; color: var(--tc); white-space: nowrap; transition: --tc 1.2s ease; }
-.stat .val .u { font-size: 14px; margin-left: 3px; }
-.chart.spark { left: 9px; right: 9px; bottom: 7px; height: 20px; border-bottom: 1px solid var(--rule); }
+.stat .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 5px; font-size: 17px; line-height: 20px; letter-spacing: .02em; }
+.stat .note { font-family: var(--condb); font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--tc); opacity: .9; }
+.stat .val { margin-top: 1px; font-family: var(--lite); font-size: 31px; line-height: 34px; color: var(--tc); white-space: nowrap; transition: --tc 1.2s ease; }
+.stat .val .u { font-size: 18px; margin-left: 3px; }
+.chart.spark { left: 7px; right: 7px; bottom: 6px; height: 17px; border-bottom: 1px solid var(--rule); }
 .chart.spark .area { opacity: .26; }
 .chart.spark .now { width: 6px; height: 6px; margin-top: -3px; right: -3px; box-shadow: 0 0 6px 1px var(--hue); }
 
 /* ================================================================ small panels */
 .shead {
-  position: absolute; left: 16px; right: 14px; top: 12px; height: 18px;
+  position: absolute; left: 14px; right: 13px; top: 9px; height: 26px;
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 
 /* memory */
-.num.mid { position: absolute; left: 14px; top: 34px; font-size: 58px; }
-.num.mid .u { font-family: var(--lite); font-size: 23px; margin-left: 2px; color: var(--label); }
-#mem .gb { position: absolute; left: 16px; top: 96px; font-size: 16px; white-space: nowrap; color: var(--label); }
-#mem .gb .v { color: var(--ink); font-family: var(--med); }
+.num.mid { position: absolute; left: 11px; top: 36px; font-size: 68px; }
+.num.mid .u { font-family: var(--lite); font-size: 28px; margin-left: 2px; color: var(--label); }
+#mem .gb { position: absolute; left: 14px; top: 106px; font-size: 18px; white-space: nowrap; color: var(--label); }
+#mem .gb .v { color: var(--ink); font-family: var(--med); font-size: 21px; }
 #mem .gb .u { margin-left: 4px; }
 .chart.mini {
-  left: 14px; right: 14px; bottom: 12px; height: 64px; border-radius: 8px;
+  left: 13px; right: 13px; bottom: 10px; height: 54px; border-radius: 8px;
   background:
     repeating-linear-gradient(0deg, rgba(200, 216, 240, .075) 0 1px, transparent 1px 25%),
     rgba(0, 0, 0, .2);
@@ -346,17 +347,17 @@ html, body {
 #mem-chart .series { --s1: 70%; --s2: 88%; --s3: 100%; }
 
 /* network / disk: incoming above a centre axis, outgoing mirrored below */
-.io .pair { position: absolute; left: 16px; right: 14px; top: 35px; display: flex; flex-direction: column; gap: 2px; }
-.rate { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.io .pair { position: absolute; left: 12px; right: 12px; top: 38px; display: flex; flex-direction: column; gap: 0; }
+.rate { display: flex; align-items: baseline; gap: 7px; white-space: nowrap; }
 .rate .dir {
-  font-style: normal; font-family: var(--cond); font-size: 16px; width: 16px; text-align: center;
+  font-style: normal; font-family: var(--cond); font-size: 20px; width: 18px; text-align: center;
 }
 .rate.in .dir  { color: var(--in); }
 .rate.out .dir { color: var(--out); }
-.rate .v { font-family: var(--lite); font-size: 30px; line-height: 1.05; min-width: 3.6ch; text-align: right; }
-.rate .u { font-size: 15px; }
+.rate .v { font-family: var(--lite); font-size: 36px; line-height: 38px; min-width: 3.6ch; text-align: right; }
+.rate .u { font-size: 19px; }
 .chart.mirror {
-  left: 14px; right: 14px; bottom: 12px; height: 80px; border-radius: 8px;
+  left: 12px; right: 12px; bottom: 10px; height: 72px; border-radius: 8px;
   background:
     linear-gradient(0deg, transparent calc(50% - .5px), rgba(200, 216, 240, .2) calc(50% - .5px), rgba(200, 216, 240, .2) calc(50% + .5px), transparent calc(50% + .5px)),
     repeating-linear-gradient(90deg, rgba(200, 216, 240, .05) 0 1px, transparent 1px 25%),
@@ -364,38 +365,33 @@ html, body {
   box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
 }
 .chart .scale {
-  position: absolute; left: 7px; z-index: 2;
-  font-family: var(--condb); font-size: 13px; line-height: 1; white-space: nowrap;
-  color: var(--label); letter-spacing: .02em;
+  position: absolute; left: 6px; z-index: 2;
+  font-family: var(--condb); font-size: 16px; line-height: 1; white-space: nowrap;
+  color: rgba(214, 226, 242, .82); letter-spacing: 0;
+  text-shadow: 0 0 3px #05070a, 0 0 6px #05070a, 0 0 2px #05070a;
 }
-.chart .scale.top { top: 5px; }
-.chart .scale.bot { bottom: 5px; }
+.chart .scale.top { top: 4px; }
+.chart .scale.bot { bottom: 4px; }
 
 /* storage */
 .board { display: flex; align-items: baseline; gap: 8px; }
-.bval { font-family: var(--lite); font-size: 22px; color: var(--tc); transition: --tc 1.2s ease; white-space: nowrap; }
-.bval .u { font-size: 14px; margin-left: 2px; }
-.dhead {
-  position: absolute; right: 14px; top: 41px; width: 104px;
-  display: flex; justify-content: space-between;
-  font-family: var(--cond); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
-}
-.dhead span:first-child { padding-left: 4px; }
+.bval { font-family: var(--lite); font-size: 30px; line-height: 26px; color: var(--tc); transition: --tc 1.2s ease; white-space: nowrap; }
+.bval .u { font-size: 18px; margin-left: 2px; }
 .drives {
-  position: absolute; left: 16px; right: 14px; top: 62px; bottom: 12px;
+  position: absolute; left: 14px; right: 13px; top: 46px; bottom: 9px;
   display: flex; flex-direction: column; justify-content: space-between;
 }
 .drive {
-  display: grid; grid-template-columns: 1fr 54px 46px; align-items: center; column-gap: 6px;
-  height: 30px;
+  display: grid; grid-template-columns: 1fr 68px 62px; align-items: center; column-gap: 6px;
+  height: 34px;
 }
 .drive .dn { min-width: 0; }
 .drive .dname {
-  display: block; font-family: var(--condb); font-size: 16px; color: var(--ink);
-  text-transform: uppercase; letter-spacing: .03em; white-space: nowrap;
+  display: block; font-family: var(--condb); font-size: 20px; line-height: 22px; color: var(--ink);
+  text-transform: uppercase; letter-spacing: 0; white-space: nowrap;
 }
 .drive .bar {
-  display: block; position: relative; height: 4px; margin-top: 5px; border-radius: 2px;
+  display: block; position: relative; height: 4px; margin-top: 4px; border-radius: 2px;
   background: rgba(200, 216, 240, .1);
 }
 .drive .bar i {
@@ -407,17 +403,17 @@ html, body {
 }
 .drive .bar.na i { opacity: 0; }
 .drive .dpct, .drive .dtemp {
-  font-family: var(--lite); font-size: 21px; text-align: right; white-space: nowrap;
+  font-family: var(--lite); font-size: 29px; line-height: 30px; text-align: right; white-space: nowrap;
   color: var(--tc); transition: --tc 1.2s ease;
 }
-.drive .u { font-size: 13px; margin-left: 1px; }
+.drive .u { font-size: 18px; margin-left: 1px; }
 
 /* =================================================================== stale
    No data for 5 s: everything greys out, the charts stop sliding and a note
    says why, so nobody trusts a frozen trace. */
 #stale-note {
   position: absolute; left: 50%; top: 210px; transform: translate(-50%, -50%);
-  font-family: var(--cond); font-size: 18px; letter-spacing: .22em; text-transform: uppercase;
+  font-family: var(--cond); font-size: 24px; letter-spacing: .14em; text-transform: uppercase;
   color: rgba(255, 214, 170, .95);
   padding: 10px 24px 10px 28px; border-radius: 99px;
   background: rgba(12, 12, 14, .94);

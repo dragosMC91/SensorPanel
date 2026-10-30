@@ -167,7 +167,7 @@
       `<div class="dh"><b class="tag">D${i}</b><span class="dname"></span></div>` +
       `<div class="dbody">` +
         `<div class="odo-w"><span class="odo" id="drive${i}-pct"><span class="v">${DASH}</span></span>` +
-        `<span class="odu"><b>%</b>used</span></div>` +
+        `<span class="odu">%</span></div>` +
         `<span class="dtemp" id="drive${i}-temp"><i class="ico thermo"></i><span class="v">${DASH}</span><span class="u">°C</span></span>` +
       `</div>` +
       `<i class="dbar" id="drive${i}-bar"><b></b></i>`;
