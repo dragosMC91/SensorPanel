@@ -189,7 +189,8 @@ positioned to the right of the main display. On Wayland an app can't place its
 own window, so `install-kwin-rule.sh` sets up **two** things:
 
 1. **A KWin window rule** (`sensor-panel-kiosk`) that pins the kiosk to
-   `HDMI-A-1`, fullscreen + borderless + kept-above, reading the live geometry
+   `HDMI-A-1`, fullscreen + borderless + kept-above, and hidden from the
+   taskbar, Alt+Tab and the pager/overview, reading the live geometry
    from `kscreen-doctor --json`. It matches by **forcing the window position**
    (see the app-id note below) — the rule's *force-screen* property is inert for
    Wayland clients on KWin 6.x, so position is what actually pins it.

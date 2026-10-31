@@ -83,6 +83,8 @@ set_rule fullscreen    true;     set_rule fullscreenrule  2
 set_rule noborder      true;     set_rule noborderrule    2
 set_rule above         true;     set_rule aboverule       2
 set_rule skiptaskbar   true;     set_rule skiptaskbarrule 2
+set_rule skipswitcher  true;     set_rule skipswitcherrule 2  # keep it out of Alt+Tab
+set_rule skippager     true;     set_rule skippagerrule   2   # …and the desktop pager/overview
 # Drop the inert force-screen keys if an earlier version wrote them (the screen
 # rule does nothing on Wayland; placement is by position + the script).
 kwriteconfig6 --file kwinrulesrc --group "$GROUP_KIOSK" --key screen     --delete 2>/dev/null || true
