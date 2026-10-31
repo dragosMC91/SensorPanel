@@ -55,38 +55,61 @@
   const warmth = (base, t) => (t <= 0.5 ? mix(base, WARM, t * 2) : mix(WARM, HOT, (t - 0.5) * 2));
   const rgb = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
 
+  /* Heat moves in 1/16 steps, so a colour changes -- and runs its 1.2 s CSS
+     fade -- only when a reading crosses a step, not on every 0.1 degree wobble.
+     Each fade repaints its text every frame; under sustained load continuous
+     heat kept a dozen of them running all the time. */
+  const HEAT_STEPS = 16;
+  const qheat = (t) => Math.round(clamp01(t || 0) * HEAT_STEPS) / HEAT_STEPS;
+
   // Always set (never remove) so a cool child never inherits a hot parent.
   function heat(el, t, base) {
     if (!el) return;
-    t = clamp01(t || 0);
+    t = qheat(t);
     el.style.setProperty("--c", rgb(warmth(base || HUES.ice, t)));
     el.style.setProperty("--tc", rgb(warmth(TEXT, t)));
   }
 
-  /* ================================================================= tween */
-  const TAU = 170;
+  /* ================================================================= tween
+     Each readout eases from what it shows to the new reading over EASE_MS
+     (ease-out), then stops. Frames are requested only while something is
+     still moving, and a text node is written only when its text changes. The
+     panel runs around the clock: an always-on animation loop rewriting every
+     readout kept Chrome repainting at 60 fps and cost ~a third of a core. */
+  const EASE_MS = 450;
   const bindings = new Map();
-  let dirty = true;
 
   function bind(id, value, fmt) {
     const el = $(id);
     if (!el) return;
     let b = bindings.get(id);
     if (!b) {
-      b = { el, v: el.querySelector(".v"), unit: el.querySelector(".u"), cur: null, target: null };
+      b = { el, v: el.querySelector(".v"), unit: el.querySelector(".u"),
+            cur: null, from: null, target: null, t0: 0, text: null };
       bindings.set(id, b);
     }
-    b.fmt = fmt;
+    b.fmt = fmt;                       // may close over fresh context (e.g. total GB)
     b.target = isNum(value) ? value : null;
-    dirty = true;
+    b.from = b.cur;                    // ease from wherever the readout is now
+    b.t0 = performance.now();
+    // Nothing visible would move (same digits at both ends): snap, no frames.
+    if (b.from !== null && b.target !== null && textOf(fmt(b.from)) === textOf(fmt(b.target))) b.from = null;
+    kick();
   }
 
-  const setText = (b, s) => { if (b.v) b.v.textContent = s; else b.el.textContent = s; };
+  const textOf = (out) => (typeof out === "object" ? out.text : out);
 
-  function paint(dt) {
-    if (!dirty) return;
+  function setText(b, s) {
+    if (b.text === s) return;
+    b.text = s;
+    if (b.v) b.v.textContent = s; else b.el.textContent = s;
+  }
+
+  const easeOut = (p) => 1 - (1 - p) ** 3;
+
+  // Paint every readout at time `now`; true while any is still easing.
+  function paint(now) {
     let moving = false;
-    const k = 1 - Math.exp(-dt / TAU);
     bindings.forEach((b) => {
       const el = b.el;
       if (b.target === null) {
@@ -97,8 +120,9 @@
         return;
       }
       el.classList.remove("na");
-      if (b.cur === null || Math.abs(b.target - b.cur) < 1e-3) b.cur = b.target;
-      else { b.cur += (b.target - b.cur) * k; moving = true; }
+      const p = Math.min(1, (now - b.t0) / EASE_MS);
+      if (b.from === null || p >= 1) b.cur = b.target;
+      else { b.cur = b.from + (b.target - b.from) * easeOut(p); moving = true; }
       const out = b.fmt(b.cur);
       const obj = typeof out === "object";
       setText(b, obj ? out.text : out);
@@ -106,15 +130,15 @@
       el.classList.toggle("idle", obj && !!out.idle);
       if (obj && out.wide !== undefined) el.classList.toggle("wide", out.wide);
     });
-    dirty = moving;
+    return moving;
   }
 
-  let lastFrame = performance.now();
-  requestAnimationFrame(function frame(now) {
-    paint(Math.min(120, now - lastFrame));
-    lastFrame = now;
-    requestAnimationFrame(frame);
-  });
+  let raf = 0;
+  function frame(now) {
+    raf = 0;
+    if (paint(now)) raf = requestAnimationFrame(frame);
+  }
+  function kick() { if (!raf) raf = requestAnimationFrame(frame); }
 
   /* ============================================================ formatters */
   const int = (v) => Math.round(v).toString();
@@ -277,8 +301,8 @@
           const last = L ? a[L - 1] : null;
           o.dot.classList.toggle("on", last !== null);
           if (last !== null) {
-            o.dot.style.top = y(last).toFixed(1) + "px";
-            if (o.base) o.dot.style.setProperty("--dot", rgb(warmth(o.base, o.heat ? o.heat(last) : 0)));
+            o.dot.style.transform = `translateY(${y(last).toFixed(1)}px)`;
+            if (o.base) o.dot.style.setProperty("--dot", rgb(warmth(o.base, o.heat ? qheat(o.heat(last)) : 0)));
           }
           if (o.pk) {
             const st = stats(a);
@@ -391,10 +415,7 @@
     const tPow = isNum(s.power) ? ramp(s.power / maxPower, RAMP.power) : 0;
     const h = Math.max(tUse, tTemp, tPow);
 
-    const load = push(u + "Load", s.usage);
-    const temps = push(u + "Temp", s.temp);
-    const pow = push(u + "Power", s.power);
-    push(u + "Clock", s.clock);
+    const load = hist[u + "Load"], temps = hist[u + "Temp"], pow = hist[u + "Power"];
 
     bind(u + "-usage", s.usage, usageFmt);
     heat($(u + "-usage"), tUse);
@@ -428,7 +449,48 @@
     heat($(u + "-clock-s"), 0);
   }
 
+  /* Every series a reading feeds, in one place, so the collector's /history
+     can be replayed into the buffers without painting anything. A reading
+     already in the window (same ts) is not pushed twice: the live feed's first
+     delivery usually repeats the last /history entry. */
+  const coresOf = (cpu) => (isNum(cpu.cores) ? cpu.cores : 12);
+  function vramPctOf(gpu) {
+    const ok = isNum(gpu.vram_used_gb) && isNum(gpu.vram_total_gb) && gpu.vram_total_gb > 0;
+    if (!ok) return null;
+    return isNum(gpu.vram_pct) ? gpu.vram_pct : gpu.vram_used_gb / gpu.vram_total_gb * 100;
+  }
+  const seenTs = [], seen = new Set();
+  function record(d) {
+    if (!d || !d.cpu) return false;
+    if (isNum(d.ts)) {
+      if (seen.has(d.ts)) return false;
+      seen.add(d.ts);
+      seenTs.push(d.ts);
+      if (seenTs.length > N) seen.delete(seenTs.shift());
+    }
+    const cpu = d.cpu || {}, gpu = d.gpu || {}, mem = d.mem || {},
+          net = d.net || {}, disk = d.disk || {};
+    [["cpu", cpu], ["gpu", gpu]].forEach(([u, x]) => {
+      push(u + "Load", x.usage);
+      push(u + "Temp", x.temp);
+      push(u + "Power", x.power);
+      push(u + "Clock", x.clock);
+    });
+    push("cpuActive", isNum(cpu.active) ? cpu.active / coresOf(cpu) * 12 : null);
+    push("gpuVram", vramPctOf(gpu));
+    push("mem", mem.percent);
+    push("netDown", net.down_bps);
+    push("netUp", net.up_bps);
+    push("diskR", disk.read_bps);
+    push("diskW", disk.write_bps);
+    return true;
+  }
+
+  let painted = false;
   function render(d) {
+    if (!d || !d.cpu) return;
+    if (!record(d) && painted) return;   // a repeat: nothing new to draw
+    painted = true;
     const cpu = d.cpu || {}, gpu = d.gpu || {}, mem = d.mem || {},
           net = d.net || {}, disk = d.disk || {};
 
@@ -436,22 +498,18 @@
     unit("gpu", gpu, GPU_POWER_MAX, RAMP.gpuTemp);
 
     // active cores
-    const cores = isNum(cpu.cores) ? cpu.cores : 12;
-    push("cpuActive", isNum(cpu.active) ? cpu.active / cores * 12 : null);
+    const cores = coresOf(cpu);
     bind("cpu-active", cpu.active, int);
     $("cpu-active").querySelector(".u").textContent = "/" + cores;
     heat($("cpu-active-s"), isNum(cpu.active) ? ramp(cpu.active / cores * 100, RAMP.load) : 0);
 
     // VRAM
-    const vramOk = isNum(gpu.vram_used_gb) && isNum(gpu.vram_total_gb) && gpu.vram_total_gb > 0;
-    const vramPct = vramOk ? (isNum(gpu.vram_pct) ? gpu.vram_pct : gpu.vram_used_gb / gpu.vram_total_gb * 100) : null;
-    push("gpuVram", vramPct);
+    const vramPct = vramPctOf(gpu), vramOk = vramPct !== null;
     bind("gpu-vram", vramOk ? gpu.vram_used_gb : null, (v) => v.toFixed(1));
     $("gpu-vram-total").textContent = vramOk ? "of " + gpu.vram_total_gb.toFixed(0) : "";
     heat($("gpu-vram-s"), ramp(vramPct, RAMP.load));
 
     // memory
-    push("mem", mem.percent);
     bind("mem-pct", mem.percent, int);
     heat($("mem"), ramp(mem.percent, RAMP.load), HUES.mem);
     $("mem-pct").style.color = "var(--tc)";
@@ -463,7 +521,7 @@
     // network + disk, each auto-scaled to its own rolling maximum
     $("net-iface").textContent = net.iface || "";
     const io = (keyIn, vIn, keyOut, vOut, idIn, idOut, chart, pre) => {
-      const aIn = push(keyIn, vIn), aOut = push(keyOut, vOut);
+      const aIn = hist[keyIn], aOut = hist[keyOut];
       bind(idIn, vIn, rate);
       bind(idOut, vOut, rate);
       const mIn = niceCeil(Math.max(0, ...aIn.filter(isNum)));
@@ -507,5 +565,8 @@
     $("clock").textContent = t.toTimeString().slice(0, 8);
   }
 
-  PanelFeed.subscribe(render);
+  // Backfill the charts from the collector's recent readings, then go live.
+  PanelFeed.history()
+    .then((past) => past.forEach(record))
+    .finally(() => PanelFeed.subscribe(render));
 })();

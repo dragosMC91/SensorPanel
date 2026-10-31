@@ -18,6 +18,10 @@
 @property --p  { syntax: "<number>"; inherits: true; initial-value: 0; }
 
 :root {
+  /* Heat colours fade in step with the numbers easing (EASE_MS in app.js).
+     Each fade repaints its text every frame; at the old 1.2 s, a new reading
+     each second meant fades never stopped under load. */
+  --heat-fade: .45s ease;
   --lite:  "Fira Sans Light", "Fira Sans", "DejaVu Sans", sans-serif;
   --xlite: "Fira Sans ExtraLight", "Fira Sans Light", "Fira Sans", sans-serif;
   --book:  "Fira Sans Book", "Fira Sans", "DejaVu Sans", sans-serif;
@@ -87,17 +91,27 @@ html, body {
   font-family: var(--cond); font-size: 22px; letter-spacing: .2em; text-transform: uppercase;
   color: var(--ink);
 }
-/* the heartbeat: restarts on every sample, so it doubles as a liveness light */
+/* the heartbeat: restarts on every sample, so it doubles as a liveness light.
+   Only transform and opacity animate (the halo is a scaled, fading disc rather
+   than a growing box-shadow), so the compositor runs it without repainting. */
 .beat {
+  position: relative; isolation: isolate;
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--cpu);
-  box-shadow: 0 0 0 0 rgba(70, 228, 214, .6);
+}
+.beat::after {           /* the halo: 26px disc = the dot + a 9px ring */
+  content: ""; position: absolute; inset: -9px; z-index: -1; border-radius: 50%;
+  background: rgb(70, 228, 214); opacity: 0;
 }
 .beat.on { animation: beat 1s ease-out; }
+.beat.on::after { animation: beat-halo 1s ease-out; }
 @keyframes beat {
-  0%   { transform: scale(1.5); box-shadow: 0 0 0 0 rgba(70, 228, 214, .7); }
-  60%  { transform: scale(1);   box-shadow: 0 0 0 9px rgba(70, 228, 214, 0); }
-  100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(70, 228, 214, 0); }
+  0%   { transform: scale(1.5); }
+  60%, 100% { transform: scale(1); }
+}
+@keyframes beat-halo {
+  0%   { transform: scale(.31); opacity: .7; }
+  60%, 100% { transform: scale(1); opacity: 0; }
 }
 .sub { color: var(--label); }
 .legend { margin-left: auto; display: flex; gap: 16px; color: var(--label); font-size: 18px; }
@@ -131,7 +145,7 @@ html, body {
 .unit::before {
   content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 1px;
   background: linear-gradient(90deg, transparent, var(--c), transparent);
-  opacity: .7; transition: --c 1.2s ease;
+  opacity: .7; transition: --c var(--heat-fade);
 }
 .unit.hot {
   box-shadow:
@@ -186,7 +200,7 @@ html, body {
 .body { position: absolute; left: 14px; right: 14px; top: 46px; height: 170px; }
 
 .hero { position: absolute; left: 0; top: 0; width: 152px; height: 170px; }
-.num { font-family: var(--xlite); line-height: 1; white-space: nowrap; color: var(--tc); transition: --tc 1.2s ease; }
+.num { font-family: var(--xlite); line-height: 1; white-space: nowrap; color: var(--tc); transition: --tc var(--heat-fade); }
 .hero .num { font-size: 82px; letter-spacing: -.02em; margin-left: -4px; }
 .hero .num.wide { font-size: 66px; }
 .hero .num .u { font-family: var(--lite); font-size: 28px; margin-left: 3px; vertical-align: 36px; color: var(--label); }
@@ -194,7 +208,7 @@ html, body {
 .cap {
   margin-top: 0;
   font-family: var(--cond); font-size: 18px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--c); transition: --c 1.2s ease;
+  color: var(--c); transition: --c var(--heat-fade);
 }
 .agg { position: absolute; left: 0; right: 0; bottom: -24px; }   /* hangs below the chart, beside the time axis */
 .agg .row { display: flex; align-items: baseline; justify-content: space-between; padding-right: 6px; }
@@ -210,6 +224,9 @@ html, body {
 .chart { position: absolute; }
 .chart .plot { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .chart .layers, .chart .glow { position: absolute; inset: 0; }
+/* Each chart keeps its own compositor layer for good: the per-second slide
+   then never repaints it, and repainting a readout never repaints a chart. */
+.chart .layers { will-change: transform; }
 .chart .layers i { position: absolute; inset: 0; clip-path: polygon(0 0, 0 0, 0 0); }
 .chart .glow { filter: drop-shadow(0 0 5px var(--glow, transparent)); }
 
@@ -240,7 +257,11 @@ html, body {
   width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
   background: var(--dot, var(--hue));
   box-shadow: 0 0 0 3px rgba(5, 7, 10, .9), 0 0 12px 2px var(--dot, var(--hue));
-  transition: top .9s var(--ease), background 1s, box-shadow 1s, opacity .4s;
+  /* Only compositor-run properties transition: app.js moves the dot with
+     translateY (no layout), and its heat colour switches with the trace it
+     sits on rather than fading. A 1 s fade of the glow repainted the blur of
+     all 16 dots every frame whenever a reading warmed or cooled. */
+  transition: transform .9s var(--ease), opacity .4s;
   opacity: 0;
 }
 .chart .now.on { opacity: 1; }
@@ -319,7 +340,7 @@ html, body {
 }
 .stat .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 5px; font-size: 17px; line-height: 20px; letter-spacing: .02em; }
 .stat .note { font-family: var(--condb); font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--tc); opacity: .9; }
-.stat .val { margin-top: 1px; font-family: var(--lite); font-size: 31px; line-height: 34px; color: var(--tc); white-space: nowrap; transition: --tc 1.2s ease; }
+.stat .val { margin-top: 1px; font-family: var(--lite); font-size: 31px; line-height: 34px; color: var(--tc); white-space: nowrap; transition: --tc var(--heat-fade); }
 .stat .val .u { font-size: 18px; margin-left: 3px; }
 .chart.spark { left: 7px; right: 7px; bottom: 6px; height: 17px; border-bottom: 1px solid var(--rule); }
 .chart.spark .area { opacity: .26; }
@@ -375,7 +396,7 @@ html, body {
 
 /* storage */
 .board { display: flex; align-items: baseline; gap: 8px; }
-.bval { font-family: var(--lite); font-size: 30px; line-height: 26px; color: var(--tc); transition: --tc 1.2s ease; white-space: nowrap; }
+.bval { font-family: var(--lite); font-size: 30px; line-height: 26px; color: var(--tc); transition: --tc var(--heat-fade); white-space: nowrap; }
 .bval .u { font-size: 18px; margin-left: 2px; }
 .drives {
   position: absolute; left: 14px; right: 13px; top: 46px; bottom: 9px;
@@ -399,12 +420,12 @@ html, body {
   width: calc(var(--p) * 1%);
   background: var(--c);
   box-shadow: 0 0 6px color-mix(in srgb, var(--c) 60%, transparent);
-  transition: --p 1s var(--ease), --c 1.2s ease;
+  transition: --p 1s var(--ease), --c var(--heat-fade);
 }
 .drive .bar.na i { opacity: 0; }
 .drive .dpct, .drive .dtemp {
   font-family: var(--lite); font-size: 29px; line-height: 30px; text-align: right; white-space: nowrap;
-  color: var(--tc); transition: --tc 1.2s ease;
+  color: var(--tc); transition: --tc var(--heat-fade);
 }
 .drive .u { font-size: 18px; margin-left: 1px; }
 
@@ -422,4 +443,4 @@ html, body {
 }
 body.stale #stage > :not(#stale-note) { filter: grayscale(.85) brightness(.6); }
 body.stale #stale-note { opacity: 1; }
-body.stale .beat, body.stale .chip::before { animation-play-state: paused; }
+body.stale .beat, body.stale .beat::after, body.stale .chip::before { animation-play-state: paused; }
