@@ -1,0 +1,38 @@
+# systemd *user* unit for the kiosk: Chrome full-screen on the Waveshare.
+# Replaces the old Plasma autostart entry so that a crashed or OOM-killed
+# browser comes back by itself instead of leaving the panel dark.
+#
+# @PANEL_DIR@ is substituted with this checkout's path by setup.sh, which also
+# installs sensor-panel-kiosk-update.{path,service} (restart after a browser
+# upgrade). By hand:
+#   sed "s|@PANEL_DIR@|$PWD|g" sensor-panel-kiosk.service > ~/.config/systemd/user/sensor-panel-kiosk.service
+#   systemctl --user daemon-reload && systemctl --user enable --now sensor-panel-kiosk.service
+#
+# Control:  systemctl --user {stop|start|restart|status} sensor-panel-kiosk
+# Logs:     journalctl --user -u sensor-panel-kiosk -f
+
+[Unit]
+Description=Sensor panel kiosk (Chrome on the Waveshare)
+# Runs inside the desktop session: started with it, stopped with it.
+PartOf=graphical-session.target
+After=graphical-session.target collector.service
+Wants=collector.service
+# Five failed starts within two minutes (no display, broken browser, ...) and
+# systemd stops retrying rather than looping forever.
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=@PANEL_DIR@/launch-kiosk.sh
+# Restart when the browser dies abnormally: a crash, a SIGKILL from the OOM
+# killer, a non-zero exit. A clean exit (Alt+F4, `pkill -f sensor-panel-chrome`,
+# `systemctl --user stop`) leaves it closed, as before.
+Restart=on-failure
+RestartSec=3
+# Chrome's renderers and GPU process are children: stop them with the browser.
+KillMode=mixed
+TimeoutStopSec=10
+
+[Install]
+WantedBy=graphical-session.target

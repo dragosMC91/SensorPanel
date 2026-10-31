@@ -61,17 +61,24 @@ fi
 say "5/6  Installing the KWin placement rule + containment script for the Waveshare"
 "$HERE/install-kwin-rule.sh" || echo "(skipped/failed — see install-kwin-rule.sh)"
 
-say "6/6  Enabling the kiosk on login"
-mkdir -p "$HOME/.config/autostart"
-# Bake this checkout's path into Exec= (desktop entries don't expand ~ / $HOME).
-sed "s|@PANEL_DIR@|$HERE|g" "$HERE/sensor-panel-kiosk.desktop" \
-  > "$HOME/.config/autostart/sensor-panel-kiosk.desktop"
-echo "Autostart entry installed (Exec=$HERE/launch-kiosk.sh)."
+say "6/6  Enabling the kiosk on login (systemd user service, restarts on crash)"
+UNIT_DIR="$HOME/.config/systemd/user"
+# Bake this checkout's path into ExecStart= (units don't know where the repo is).
+sed "s|@PANEL_DIR@|$HERE|g" "$HERE/sensor-panel-kiosk.service" > "$UNIT_DIR/sensor-panel-kiosk.service"
+cp -f "$HERE/sensor-panel-kiosk-update.path" "$HERE/sensor-panel-kiosk-update.service" "$UNIT_DIR/"
+# Earlier versions started the kiosk from a Plasma autostart entry; with both in
+# place two kiosks would open on login.
+rm -f "$HOME/.config/autostart/sensor-panel-kiosk.desktop"
+systemctl --user daemon-reload
+systemctl --user enable sensor-panel-kiosk.service sensor-panel-kiosk-update.path
+systemctl --user start sensor-panel-kiosk-update.path
+echo "Kiosk service enabled (ExecStart=$HERE/launch-kiosk.sh); it starts with the desktop session."
 
 say "Done"
 cat <<EOF
 Start the kiosk now without logging out:
-    $HERE/launch-kiosk.sh
-It will open full-screen on the Waveshare (HDMI-A-1).
+    systemctl --user start sensor-panel-kiosk
+It will open full-screen on the Waveshare (HDMI-A-1). Stop it with
+    systemctl --user stop sensor-panel-kiosk      (Alt+F4 also closes it for good)
 Preview in a normal window instead:  open http://localhost:8777/ in a browser.
 EOF

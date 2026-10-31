@@ -1,0 +1,12 @@
+# Triggered by sensor-panel-kiosk-update.path when the browser binary changes.
+# Restarts the kiosk only if it is running (try-restart), after a pause: the
+# binary is replaced early in a package upgrade, and starting the browser before
+# the rest of the package has been written would mix old and new files.
+
+[Unit]
+Description=Restart the sensor panel kiosk after a browser upgrade
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 30
+ExecStart=/usr/bin/systemctl --user try-restart sensor-panel-kiosk.service

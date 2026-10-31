@@ -1,0 +1,18 @@
+# Watches the kiosk's browser binary. When a package upgrade replaces it, the
+# running kiosk is restarted on the new version (sensor-panel-kiosk-update.service):
+# a Chrome left running across its own upgrade can fail to start new renderer
+# processes and show a dead "Aw, Snap" page on the panel.
+#
+# Installed and enabled by setup.sh. A path that doesn't exist (e.g. Chromium
+# when you run Google Chrome) is simply never triggered.
+
+[Unit]
+Description=Watch the sensor panel kiosk's browser for upgrades
+
+[Path]
+PathChanged=/opt/google/chrome/chrome
+PathChanged=/usr/lib/chromium/chromium
+Unit=sensor-panel-kiosk-update.service
+
+[Install]
+WantedBy=graphical-session.target

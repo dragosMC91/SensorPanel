@@ -55,8 +55,8 @@ crashes.
 >
 > **`setup.sh` is not a quiet installer — read it before running it.** It uses
 > `sudo` to install packages, `modprobe`s `drivetemp` and writes
-> `/etc/modules-load.d/drivetemp.conf`, then installs a systemd **user** service
-> and a login autostart entry. Every step is listed below if you'd rather do them
+> `/etc/modules-load.d/drivetemp.conf`, then installs systemd **user** units for
+> the collector and the kiosk. Every step is listed below if you'd rather do them
 > by hand. Note also that the optional motherboard-temp fix asks you to boot with
 > `acpi_enforce_resources=lax`, which relaxes a kernel safety check on ACPI-owned
 > I/O regions — it's a common lm-sensors workaround, but it's your call, not a
@@ -64,40 +64,56 @@ crashes.
 
 ```bash
 cd ~/Documents/sensor-panel
-./setup.sh          # installs deps, loads drivetemp, enables the collector
-                    # service, installs the KWin rule + login autostart
+./setup.sh          # installs deps, loads drivetemp, enables the collector and
+                    # kiosk services, installs the KWin rule
 ```
 
-Then either open the kiosk now:
+The kiosk runs as a systemd user service, `sensor-panel-kiosk`, started with the
+desktop session. Open it now without logging out:
 
 ```bash
-./launch-kiosk.sh   # full-screen on the Waveshare (HDMI-A-1)
+systemctl --user start sensor-panel-kiosk   # full-screen on the Waveshare (HDMI-A-1)
 ```
+
+If the browser crashes or is OOM-killed, systemd restarts it within a few
+seconds. When a package upgrade replaces the Chrome binary,
+`sensor-panel-kiosk-update.path` restarts the kiosk on the new version 30 s
+later; a Chrome left running across its own upgrade can fail to open new
+renderer processes and show a dead page. One case it can't see: a crashed
+*tab* ("Aw, Snap") inside a browser that is still running.
+
+To close it: `Alt+F4`, `pkill -f sensor-panel-chrome`, or
+`systemctl --user stop sensor-panel-kiosk`. A clean exit like these is left
+closed; it comes back on the next login or `start`.
 
 The kiosk opens the **Pulse** design (`designs/pulse/`) by default. To show the
-original panel or another design, set `PANEL_URL`:
+original panel or another design, set `PANEL_URL` for the service:
 
 ```bash
-PANEL_URL=http://localhost:8777/ ./launch-kiosk.sh                            # original
-PANEL_URL=http://localhost:8777/designs/verdict/index.html ./launch-kiosk.sh  # any design
+systemctl --user edit sensor-panel-kiosk      # add, then save:
+#   [Service]
+#   Environment=PANEL_URL=http://localhost:8777/                            # original
+#   Environment=PANEL_URL=http://localhost:8777/designs/verdict/index.html  # any design
+systemctl --user restart sensor-panel-kiosk
 ```
 
-…or just preview in a normal browser window: <http://localhost:8777/>.
-
-To exit the kiosk: `Alt+F4`, or `pkill -f sensor-panel-chrome`.
+`./launch-kiosk.sh` still works on its own (e.g. `PANEL_URL=… ./launch-kiosk.sh`)
+while the service is stopped. To preview without the kiosk, open
+<http://localhost:8777/> in a normal browser window.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `collector.py`        | Reads sensors 1×/s; serves `/metrics` (JSON) and `/stream` (SSE) + static assets. Stdlib `http.server` + `psutil` only. |
+| `collector.py`        | Reads sensors 1×/s; serves `/metrics` (JSON), `/stream` (SSE, one event per new reading), `/history` (the last 2 min of readings, for Pulse's charts) + static assets. Stdlib `http.server` + `psutil` only. |
 | `config.toml`         | The discovered sensor→field mapping (hwmon chips, drive matches, network iface). Portable & tweakable. |
 | `index.html` / `style.css` / `app.js` | 1024×600 frontend. Background layer + animated GIF layers + absolutely-positioned live text. |
-| `launch-kiosk.sh`     | Opens Chrome kiosk pinned to the Waveshare. |
+| `launch-kiosk.sh`     | Opens Chrome kiosk pinned to the Waveshare (run by `sensor-panel-kiosk.service`). |
 | `install-kwin-rule.sh`| Installs the KWin window rule (pins the kiosk to `HDMI-A-1`) **and** the containment KWin script (keeps every other window off it). |
 | `kwin-script/`        | KWin script package (`sensorpanelcontain`) that moves any non-kiosk window that opens on the Waveshare back to the main screen. |
 | `collector.service`   | systemd **user** unit to autostart the collector. |
-| `sensor-panel-kiosk.desktop` | Plasma autostart entry for the kiosk. |
+| `sensor-panel-kiosk.service` | systemd **user** unit for the kiosk: starts with the desktop session, restarts the browser if it crashes. |
+| `sensor-panel-kiosk-update.{path,service}` | Restart the kiosk after a Chrome/Chromium upgrade replaces the browser binary. |
 | `setup.sh`            | One-shot installer for all of the above. |
 | `designs/`            | Pure-CSS alternative frontends and a side-by-side comparison page — see [Design alternatives](#design-alternatives). |
 | `.claude/skills/validate-designs/` | Claude Code skill + script that checks the comparison page in headless Chrome. |
