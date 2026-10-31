@@ -4,8 +4,13 @@ Sensor-panel collector.
 
 Reads real hardware sensors once per second and serves them to the frontend:
   GET /metrics  -> JSON snapshot (single reading)
-  GET /stream   -> Server-Sent Events, one JSON object pushed per interval
+  GET /stream   -> Server-Sent Events, one JSON object per *new* reading
+  GET /history  -> JSON list of the last [server] history readings, oldest first
   GET /         -> index.html  (and static assets: *.css *.js *.png *.gif)
+
+The stream only ever sends a reading once. If the sampler stalls (a hung sysfs
+read) it sends nothing but keep-alive comments, so the frontends' 5 s stale
+guard fires instead of the panel replaying a frozen reading as if it were live.
 
 Dependency-light on purpose: Python stdlib + psutil only. Config is a TOML file
 (read with the stdlib tomllib). Every individual sensor read is wrapped so that a
@@ -22,7 +27,7 @@ import os
 import sys
 import threading
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 try:
@@ -261,8 +266,12 @@ def active_cores(percpu, threshold):
 class Collector:
     def __init__(self, config):
         self.cfg = config
-        self.lock = threading.Lock()
+        # Guards latest/history/seq; notified on every new reading so streams
+        # wake exactly once per sample instead of polling on their own clock.
+        self.cond = threading.Condition()
         self.latest = {}
+        self.seq = 0                # bumps once per stored reading
+        self.history = deque(maxlen=max(1, int(config.get("server", {}).get("history", 120))))
         self._net_prev = None       # (bytes_sent, bytes_recv, monotonic_ts)
         self._disk_prev = None      # (read_bytes, write_bytes, monotonic_ts)
         self.gpu_dev = discover_gpu_card(config.get("gpu", {}).get("card", ""))
@@ -446,15 +455,57 @@ class Collector:
         }
 
     def run(self, interval):
+        """Sample on a fixed cadence until the process exits.
+
+        Ticks are scheduled from a monotonic clock, not "sleep after sampling",
+        so the period stays at `interval` however long a sample takes. An
+        exception never ends the loop: before, it silently killed this thread
+        while the server went on serving the last reading forever.
+        """
+        next_at = time.monotonic()
+        failures = 0
         while True:
-            reading = self.sample()
-            with self.lock:
-                self.latest = reading
-            time.sleep(interval)
+            try:
+                reading = self.sample()
+                failures = 0
+            except Exception as exc:
+                reading = None
+                failures += 1
+                if failures == 1 or failures % 60 == 0:   # don't flood the journal
+                    sys.stderr.write(f"[collector] sample failed ({failures}x): {exc!r}\n")
+            if reading is not None:
+                with self.cond:
+                    self.latest = reading
+                    self.history.append(reading)
+                    self.seq += 1
+                    self.cond.notify_all()
+            next_at += interval
+            delay = next_at - time.monotonic()
+            if delay < 0:            # a sample overran the interval: resync, don't burst
+                next_at = time.monotonic()
+                delay = 0
+            time.sleep(delay)
 
     def snapshot(self):
-        with self.lock:
+        with self.cond:
             return dict(self.latest)
+
+    def history_list(self):
+        with self.cond:
+            return list(self.history)
+
+    def wait_newer(self, seen, timeout):
+        """Block until a reading newer than sequence number `seen` exists.
+
+        Returns (seq, reading), or (seen, None) if none arrived within timeout.
+        Readings are replaced, never mutated, so the caller may serialise the
+        returned dict outside the lock.
+        """
+        with self.cond:
+            self.cond.wait_for(lambda: self.seq != seen, timeout)
+            if self.seq == seen:
+                return seen, None
+            return self.seq, self.latest
 
 
 # --------------------------------------------------------------------------- #
@@ -510,12 +561,20 @@ def make_handler(collector, interval):
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "keep-alive")
             self.end_headers()
+            # One event per new reading, the latest first. While the sampler is
+            # stalled, send only a keep-alive comment: it carries no data (so
+            # the page's stale guard still fires) but still detects a client
+            # that has gone away, letting this thread exit.
+            seen = 0
+            keepalive = max(3.0, 3 * interval)
             try:
                 while True:
-                    payload = json.dumps(collector.snapshot())
-                    self.wfile.write(f"data: {payload}\n\n".encode())
+                    seen, reading = collector.wait_newer(seen, keepalive)
+                    if reading is None:
+                        self.wfile.write(b": keep-alive\n\n")
+                    else:
+                        self.wfile.write(f"data: {json.dumps(reading)}\n\n".encode())
                     self.wfile.flush()
-                    time.sleep(interval)
             except (BrokenPipeError, ConnectionResetError):
                 return
 
@@ -523,6 +582,8 @@ def make_handler(collector, interval):
             route = self.path.split("?", 1)[0]
             if route == "/metrics":
                 self._send_json(collector.snapshot())
+            elif route == "/history":
+                self._send_json(collector.history_list())
             elif route == "/stream":
                 self._serve_stream()
             else:

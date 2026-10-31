@@ -198,10 +198,14 @@
   }
 
   /* ---- render one snapshot ---- */
-  let lastData = 0;
+  let lastData = 0, lastTs = null;
 
   function render(d) {
     if (!d || !d.cpu) return;
+    // Each reading counts once. The polling fallback can fetch the same one
+    // twice; counting a repeat as fresh would hide a stalled collector.
+    if (d.ts !== undefined && d.ts === lastTs) return;
+    lastTs = d.ts;
     lastData = performance.now();
     document.body.classList.remove("stale");
 

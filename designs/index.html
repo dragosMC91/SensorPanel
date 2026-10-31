@@ -64,6 +64,7 @@
       const subs = new Set();
       let last = null, poll = null;
       const emit = (d) => {
+        if (last && d && d.ts !== undefined && d.ts === last.ts) return;   // a repeat
         last = d;
         subs.forEach((fn) => { try { fn(d); } catch (e) { subs.delete(fn); } });
       };

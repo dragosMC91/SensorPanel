@@ -2,7 +2,12 @@
    Same transport as the production app.js: SSE /stream, polling /metrics as a
    fallback, and a stale guard that sets body.stale after 5 s without data.
 
-     PanelFeed.subscribe((snapshot) => { ... })   // called ~1x/second
+     PanelFeed.subscribe((snapshot) => { ... })   // called once per new reading
+     PanelFeed.history().then((readings) => ...)   // recent past, oldest first
+
+   A reading is delivered once: a repeat (same ts, e.g. the polling fallback
+   fetching /metrics twice within one sample) is dropped, so a stalled
+   collector reads as stale instead of as a frozen-but-live panel.
 
    ?demo=load swaps the collector for synthetic readings that sweep from idle
    to flat-out over ~40 s, so a design can be judged hot as well as calm.
@@ -21,6 +26,7 @@
 
   function emit(d) {
     if (!d || !d.cpu) return;
+    if (last && d.ts !== undefined && d.ts === last.ts) return;   // already delivered
     last = d;
     lastAt = performance.now();
     document.body.classList.remove("stale");
@@ -122,8 +128,21 @@
     connect();
   }
 
+  /* The collector's recent readings (GET /history), oldest first, so a
+     history-driven design starts with full charts instead of filling them over
+     minutes. Demo feeds have no past; failures resolve to [] (the page then
+     fills from live data as before). */
+  function history() {
+    if (demo) return Promise.resolve([]);
+    return fetch("/history", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((a) => (Array.isArray(a) ? a.filter((d) => d && d.cpu) : []))
+      .catch(() => []);
+  }
+
   window.PanelFeed = {
     subscribe(fn) { subs.push(fn); if (last) fn(last); },
+    history,
     get last() { return last; },
     demo,
   };

@@ -9,6 +9,7 @@
 host     = "127.0.0.1"   # localhost only, never exposed to the network
 port     = 8777
 interval = 1.0           # seconds between sensor readings
+history  = 120           # readings kept for GET /history (Pulse backfills its 2-min charts)
 
 # ------------------------------------------------------------------- CPU -----
 [cpu]
