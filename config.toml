@@ -30,6 +30,10 @@ active_threshold = 10.0
 # provides the temperature (Tdie), covered by the fallback lists above.
 power_hwmon      = ["zenpower"]
 power_attr       = ["power1_input", "power1_average"]
+# Added to power_attr when present: zenpower reports the core rail
+# (SVI2_P_Core, power1) and the SoC rail (SVI2_P_SoC, power2) separately, and
+# package power, the figure the 142 W PPT limit applies to, is their sum.
+power_soc_attr   = ["power2_input"]
 power_divisor    = 1000000.0     # microwatts -> watts
 
 # ------------------------------------------------------------------- GPU -----
@@ -39,6 +43,10 @@ power_divisor    = 1000000.0     # microwatts -> watts
 card        = "card1"
 hwmon       = "amdgpu"
 temp_label  = "edge"            # temp1 = edge; also available: junction, mem
+hotspot_label  = "junction"     # hotspot temp (what throttles); "" to disable
+mem_temp_label = "mem"          # VRAM temp; "" to disable
+fan_attr       = "fan1_input"   # fan RPM (0 = zero-RPM fan stop); "" to disable
+fan_max_attr   = "fan1_max"
 power_attr  = "power1_average"  # microwatts -> watts
 clock_attr  = "freq1_input"     # sclk, Hz -> MHz (exposed as gpu.clock in JSON)
 # VRAM comes from mem_info_vram_used / mem_info_vram_total under the card dir.

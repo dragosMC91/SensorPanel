@@ -23,10 +23,12 @@ Everything runs on localhost. No cloud, no external calls.
 
 | Panel field        | Source                                             | Works now |
 |--------------------|----------------------------------------------------|-----------|
-| CPU usage / active | `psutil` (Ryzen 9 3900X, 12c/24t)                  | ✅ |
+| CPU usage / active / per-core load | `psutil` (Ryzen 9 3900X, 12c/24t); cores grouped by shared L3 from sysfs | ✅ |
+| CPU clock (max + average) | `psutil.cpu_freq(percpu=True)`              | ✅ |
 | CPU temp           | `k10temp` → `Tctl`                                 | ✅ |
-| CPU power (W)      | `zenpower` hwmon                                   | ⚠️ needs zenpower3 (AUR) |
+| CPU power (W)      | `zenpower` hwmon: core + SoC rails = package power | ⚠️ needs zenpower3 (AUR) |
 | GPU usage/temp/power/VRAM/clock | RX 6800 `card1`: `gpu_busy_percent`, `amdgpu` hwmon, `mem_info_vram_*` | ✅ |
+| GPU hotspot / VRAM temp / fan RPM | `amdgpu` hwmon: `junction`, `mem`, `fan1_input` | ✅ |
 | Memory %           | `psutil`                                           | ✅ |
 | Network up/down    | `psutil` (active iface auto-detected → `wlan0`)    | ✅ |
 | NVMe 970 / 980     | `nvme` hwmon                                       | ✅ |
@@ -97,6 +99,25 @@ systemctl --user edit sensor-panel-kiosk      # add, then save:
 systemctl --user restart sensor-panel-kiosk
 ```
 
+What Pulse shows: for CPU and GPU, load and temperature as two big numbers
+over a 2-minute chart (load fill, temperature line on a scale zoomed to the
+window, so every degree of drift is visible and the right-hand axis reads it
+off). Below are power, clock and per-core load (CPU, one bar per core grouped
+by CCX) or hotspot, power, clock and VRAM (GPU). A small fan in the GPU header
+turns while the GPU fan spins, faster as it speeds up, and stands still in
+zero-RPM fan stop. The status chip says IDLE / NOMINAL / BUSY, or WARM / HOT
+plus the sensor that's hot (`HOT · HOTSPOT 103°`). Only temperatures, nearly
+full memory or a nearly full drive raise an alert, and a panel outlines amber
+or red only once the condition has held for two readings. It then stays
+outlined for five readings after the condition clears.
+
+Pulse is built to cost almost nothing around the clock. Chrome draws frames
+only while something animates, so nothing animates between readings: numbers,
+colours, dots and charts all snap once per second. The fan is the one
+exception, a stepped compositor-only rotation (~15 frames/s) that runs only
+while the real fan spins. `launch-kiosk.sh` also turns off extensions, sync
+and background networking.
+
 `./launch-kiosk.sh` still works on its own (e.g. `PANEL_URL=… ./launch-kiosk.sh`)
 while the service is stopped. To preview without the kiosk, open
 <http://localhost:8777/> in a normal browser window.
@@ -158,11 +179,13 @@ echo 'blacklist k10temp' | sudo tee /etc/modprobe.d/zenpower.conf
 echo 'zenpower'          | sudo tee /etc/modules-load.d/zenpower.conf
 # apply now without a reboot:
 sudo modprobe -r k10temp && sudo modprobe zenpower
-sensors | grep -iA4 zenpower        # confirm power1 (SVI2_P_Core) shows up
+sensors | grep -iA4 zenpower        # confirm power1 (SVI2_P_Core) + power2 (SVI2_P_SoC) show up
 ```
 `config.toml` already lists both drivers (`cpu.temp_hwmon = ["k10temp",
 "zenpower"]`, `cpu.power_hwmon = ["zenpower"]`), so temp keeps working and
-power lights up once zenpower is bound. Restart the collector afterward.
+power lights up once zenpower is bound. The collector reports package power,
+core rail plus SoC rail (`cpu.power_soc_attr`), since that sum is what the
+142 W PPT limit applies to. Restart the collector afterward.
 
 **SATA drive temps** — `setup.sh` loads `drivetemp` and persists it via
 `/etc/modules-load.d/drivetemp.conf`. Manually:

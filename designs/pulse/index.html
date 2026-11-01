@@ -13,19 +13,6 @@
 <body>
   <div id="stage">
 
-    <!-- ================================================================ bar -->
-    <header id="bar">
-      <span class="brand"><i class="beat" id="beat"></i>Pulse</span>
-      <span class="sub">last 2 min</span>
-      <span class="legend">
-        <span><i class="key k-load"></i>load</span>
-        <span><i class="key k-temp"></i>temp</span>
-        <span><i class="key k-in"></i>in</span>
-        <span><i class="key k-out"></i>out</span>
-      </span>
-      <span class="clock" id="clock"></span>
-    </header>
-
     <!-- ================================================================ CPU -->
     <section class="panel unit" id="cpu">
       <header class="head">
@@ -35,40 +22,35 @@
       </header>
       <div class="body">
         <div class="hero">
-          <div class="num" id="cpu-usage"><span class="v">–</span><span class="u">%</span></div>
-          <div class="cap">Load</div>
-          <div class="agg">
-            <div class="row"><span class="k">Peak</span><span class="pv" id="cpu-peak">–</span></div>
-            <div class="ago" id="cpu-peak-ago"></div>
-            <div class="row"><span class="k">Avg</span><span class="pv" id="cpu-avg">–</span></div>
+          <div class="metric">
+            <div class="num" id="cpu-usage"><span class="v">–</span><span class="u">%</span></div>
+            <div class="cap load-cap"><i class="key"></i>Load</div>
+          </div>
+          <div class="metric">
+            <div class="num" id="cpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+            <div class="cap temp-cap"><i class="key"></i>Temp</div>
           </div>
         </div>
         <div class="chart big" id="cpu-chart">
           <span class="ax l" style="--y:75">75</span><span class="ax l" style="--y:50">50</span><span class="ax l" style="--y:25">25</span>
-          <span class="ax r" style="--y:75">80°</span><span class="ax r" style="--y:50">60°</span><span class="ax r" style="--y:25">40°</span>
+          <span class="ax r" style="--y:75"></span><span class="ax r" style="--y:50"></span><span class="ax r" style="--y:25"></span>
         </div>
       </div>
       <div class="taxis"><span>2 min ago</span><span>1 min</span><span>now</span></div>
       <div class="stats">
-        <div class="stat" id="cpu-temp-s">
-          <div class="lbl">Temp<span class="note" id="cpu-temp-trend"></span></div>
-          <div class="val" id="cpu-temp"><span class="v">–</span><span class="u">°C</span></div>
-          <div class="chart spark" id="cpu-temp-spark"></div>
-        </div>
         <div class="stat" id="cpu-power-s">
           <div class="lbl">Power<span class="note" id="cpu-power-peak"></span></div>
           <div class="val" id="cpu-power"><span class="v">–</span><span class="u">W</span></div>
           <div class="chart spark" id="cpu-power-spark"></div>
         </div>
         <div class="stat" id="cpu-clock-s">
-          <div class="lbl">Clock</div>
-          <div class="val" id="cpu-clock"><span class="v">–</span><span class="u">MHz</span></div>
+          <div class="lbl">Clock<span class="note" id="cpu-clock-max"></span></div>
+          <div class="val" id="cpu-clock"><span class="v">–</span><span class="u">GHz</span></div>
           <div class="chart spark" id="cpu-clock-spark"></div>
         </div>
-        <div class="stat" id="cpu-active-s">
-          <div class="lbl">Cores</div>
-          <div class="val" id="cpu-active"><span class="v">–</span><span class="u">/12</span></div>
-          <div class="chart spark" id="cpu-active-spark"></div>
+        <div class="stat cores" id="cpu-cores-s">
+          <div class="lbl">Cores<span class="note" id="cpu-active"></span></div>
+          <div class="bars" id="cpu-cores"><!-- one bar per core, built by app.js --></div>
         </div>
       </div>
     </section>
@@ -77,30 +59,32 @@
     <section class="panel unit" id="gpu">
       <header class="head">
         <span class="title">GPU</span>
-        <span class="model">Radeon RX 6800 · 16 GB</span>
+        <span class="model"><span class="brand">Radeon </span>RX 6800 · 16 GB</span>
+        <span class="fan" id="gpu-fan" title="GPU fan"><i class="rotor"></i></span>
         <span class="chip" id="gpu-chip">NO DATA</span>
       </header>
       <div class="body">
         <div class="hero">
-          <div class="num" id="gpu-usage"><span class="v">–</span><span class="u">%</span></div>
-          <div class="cap">Load</div>
-          <div class="agg">
-            <div class="row"><span class="k">Peak</span><span class="pv" id="gpu-peak">–</span></div>
-            <div class="ago" id="gpu-peak-ago"></div>
-            <div class="row"><span class="k">Avg</span><span class="pv" id="gpu-avg">–</span></div>
+          <div class="metric">
+            <div class="num" id="gpu-usage"><span class="v">–</span><span class="u">%</span></div>
+            <div class="cap load-cap"><i class="key"></i>Load</div>
+          </div>
+          <div class="metric">
+            <div class="num" id="gpu-temp"><span class="v">–</span><span class="u">°C</span></div>
+            <div class="cap temp-cap"><i class="key"></i>Temp</div>
           </div>
         </div>
         <div class="chart big" id="gpu-chart">
           <span class="ax l" style="--y:75">75</span><span class="ax l" style="--y:50">50</span><span class="ax l" style="--y:25">25</span>
-          <span class="ax r" style="--y:75">80°</span><span class="ax r" style="--y:50">60°</span><span class="ax r" style="--y:25">40°</span>
+          <span class="ax r" style="--y:75"></span><span class="ax r" style="--y:50"></span><span class="ax r" style="--y:25"></span>
         </div>
       </div>
       <div class="taxis"><span>2 min ago</span><span>1 min</span><span>now</span></div>
       <div class="stats">
-        <div class="stat" id="gpu-temp-s">
-          <div class="lbl">Temp<span class="note" id="gpu-temp-trend"></span></div>
-          <div class="val" id="gpu-temp"><span class="v">–</span><span class="u">°C</span></div>
-          <div class="chart spark" id="gpu-temp-spark"></div>
+        <div class="stat" id="gpu-hotspot-s">
+          <div class="lbl">Hotspot</div>
+          <div class="val" id="gpu-hotspot"><span class="v">–</span><span class="u">°C</span></div>
+          <div class="chart spark" id="gpu-hotspot-spark"></div>
         </div>
         <div class="stat" id="gpu-power-s">
           <div class="lbl">Power<span class="note" id="gpu-power-peak"></span></div>

@@ -247,6 +247,54 @@ def _core_map():
     return mapping
 
 
+_CORE_ORDER = None
+
+
+def _core_order():
+    """Physical cores in display order, grouped by the L3 cache they share.
+
+    Returns (keys, groups): `keys` lists each (package, core_id) once, ordered
+    by L3 cache then core id; `groups` holds how many consecutive keys share
+    one L3 (on a Ryzen 9 3900X: four CCXs of three cores, [3, 3, 3, 3]).
+    Without cache info every core lands in a single group.
+    """
+    global _CORE_ORDER
+    if _CORE_ORDER is not None:
+        return _CORE_ORDER
+    l3 = {}
+    for n, key in _core_map().items():
+        cache = _read(f"/sys/devices/system/cpu/cpu{n}/cache/index3/id")
+        l3.setdefault(key, int(cache) if cache and cache.isdigit() else 0)
+
+    def num(x):
+        return int(x) if str(x).isdigit() else 0
+
+    keys = sorted(l3, key=lambda k: (num(k[0]), l3[k], num(k[1])))
+    groups = []
+    for i, k in enumerate(keys):
+        if i and l3[k] == l3[keys[i - 1]] and k[0] == keys[i - 1][0]:
+            groups[-1] += 1
+        else:
+            groups.append(1)
+    _CORE_ORDER = (keys, groups)
+    return _CORE_ORDER
+
+
+def core_loads(percpu):
+    """Per physical core load (%), the busier of its SMT threads, in
+    _core_order() order, plus the L3 group sizes."""
+    cmap = _core_map()
+    busiest = defaultdict(float)
+    for i, usage in enumerate(percpu):
+        key = cmap.get(i)
+        if key is not None:
+            busiest[key] = max(busiest[key], usage)
+    keys, groups = _core_order()
+    if not keys or not busiest:
+        return None, None
+    return [round(busiest[k], 0) for k in keys], groups
+
+
 def active_cores(percpu, threshold):
     """(active_physical_cores, total_physical_cores) from per-logical usage."""
     cmap = _core_map()
@@ -346,16 +394,26 @@ class Collector:
         percpu = psutil.cpu_percent(percpu=True)
         overall = sum(percpu) / len(percpu) if percpu else None
         active, total = active_cores(percpu, cpu.get("active_threshold", 10.0))
+        loads, groups = core_loads(percpu)
         power = None
         if cpu.get("power_hwmon"):
-            power = hwmon_value(cpu["power_hwmon"], cpu.get("power_attr", "power1_input"),
-                                cpu.get("power_divisor", 1_000_000.0))
-        # Fastest core right now (MHz) — the boost clock, like most panels show.
-        clock = None
+            divisor = cpu.get("power_divisor", 1_000_000.0)
+            power = hwmon_value(cpu["power_hwmon"], cpu.get("power_attr", "power1_input"), divisor)
+            # zenpower splits package power into a core rail and an SoC rail;
+            # the PPT limit the panel scales against covers both.
+            if power is not None and cpu.get("power_soc_attr"):
+                soc = hwmon_value(cpu["power_hwmon"], cpu["power_soc_attr"], divisor)
+                if soc is not None:
+                    power += soc
+        # `clock` is the fastest core right now (the boost clock, like most
+        # panels show); `clock_avg` is the mean over every logical CPU, which
+        # actually moves with load.
+        clock = clock_avg = None
         try:
-            freqs = psutil.cpu_freq(percpu=True)
+            freqs = [f.current for f in (psutil.cpu_freq(percpu=True) or []) if f.current]
             if freqs:
-                clock = max(f.current for f in freqs)
+                clock = max(freqs)
+                clock_avg = sum(freqs) / len(freqs)
         except Exception:
             pass
         return {
@@ -363,8 +421,11 @@ class Collector:
             "temp": hwmon_temp(cpu.get("temp_hwmon", "k10temp"), cpu.get("temp_label", "Tctl")),
             "power": round(power, 1) if power is not None else None,
             "clock": round(clock, 0) if clock is not None else None,
+            "clock_avg": round(clock_avg, 0) if clock_avg is not None else None,
             "active": active,
             "cores": total,
+            "core_loads": loads,
+            "core_groups": groups,
         }
 
     def _gpu(self):
@@ -382,9 +443,34 @@ class Collector:
         vram_pct = None
         if vram_used is not None and vram_total:
             vram_pct = vram_used / vram_total * 100.0
+        hw = gpu.get("hwmon", "amdgpu")
+
+        def temp_or_none(label_key):
+            # hwmon_temp falls back to temp1 (edge) when a label is missing;
+            # an extra sensor must read null instead of repeating edge.
+            label = gpu.get(label_key)
+            if not label:
+                return None
+            for nm in _as_list(hw):
+                for d in find_hwmon(nm):
+                    for lbl_file in glob.glob(os.path.join(d, "temp*_label")):
+                        if _read(lbl_file) == label:
+                            return _read_float(lbl_file.replace("_label", "_input"), 1000.0)
+            return None
+
+        hotspot = temp_or_none("hotspot_label")
+        mem_temp = temp_or_none("mem_temp_label")
+        fan = fan_max = None
+        if gpu.get("fan_attr"):
+            fan = hwmon_value(hw, gpu["fan_attr"])
+            fan_max = hwmon_value(hw, gpu.get("fan_max_attr", "fan1_max"))
         return {
             "usage": round(usage, 0) if usage is not None else None,
-            "temp": hwmon_temp(gpu.get("hwmon", "amdgpu"), gpu.get("temp_label", "edge")),
+            "temp": hwmon_temp(hw, gpu.get("temp_label", "edge")),
+            "hotspot": round(hotspot, 0) if hotspot is not None else None,
+            "mem_temp": round(mem_temp, 0) if mem_temp is not None else None,
+            "fan_rpm": round(fan, 0) if fan is not None else None,
+            "fan_max_rpm": round(fan_max, 0) if fan_max else None,
             "power": round(power, 1) if power is not None else None,
             "clock": round(clock, 0) if clock is not None else None,
             "vram_used_gb": round(vram_used / 1024**3, 1) if vram_used is not None else None,

@@ -56,8 +56,10 @@
     const lerp = (a, b, k) => a + (b - a) * Math.max(0, Math.min(1, k));
     if (mode === "null") {
       return { ts: Date.now() / 1000,
-        cpu: { usage: null, temp: null, power: null, clock: null },
+        cpu: { usage: null, temp: null, power: null, clock: null, clock_avg: null,
+               core_loads: null, core_groups: null },
         gpu: { usage: null, temp: null, power: null, clock: null,
+               hotspot: null, mem_temp: null, fan_rpm: null, fan_max_rpm: null,
                vram_used_gb: null, vram_total_gb: null, vram_pct: null },
         mem: { percent: null, used_gb: null, total_gb: null },
         net: { iface: null, up_bps: null, down_bps: null },
@@ -69,11 +71,19 @@
     const vramUsed = lerp(1.2, 15.4, u + j());
     const memPct = lerp(10, 93, u + j());
     const used = [lerp(4, 97, u), null, lerp(35, 81, u), lerp(8, 64, u)];
+    // per-core load: the first cores take work first, as a scheduler does
+    const cores = Array.from({ length: 12 }, (_, i) =>
+      Math.round(Math.max(0, Math.min(100, lerp(0, 100, u * 1.6 - i / 16 + j() * 2)))));
+    const gpuTemp = lerp(40, 96, u);
     return {
       ts: Date.now() / 1000,
       cpu: { usage: lerp(2, 100, u + j()), temp: lerp(38, 94, u), power: lerp(9, 142, u + j()),
-             clock: lerp(2200, 4650, u + j()), active: Math.round(lerp(1, 12, u)), cores: 12 },
-      gpu: { usage: lerp(0, 100, u + j()), temp: lerp(40, 96, u), power: lerp(8, 230, u + j()),
+             clock: lerp(4100, 4650, u + j()), clock_avg: lerp(2200, 4100, u + j()),
+             active: Math.round(lerp(1, 12, u)), cores: 12,
+             core_loads: cores, core_groups: [3, 3, 3, 3] },
+      gpu: { usage: lerp(0, 100, u + j()), temp: gpuTemp, power: lerp(8, 230, u + j()),
+             hotspot: gpuTemp + lerp(1, 14, u), mem_temp: lerp(40, 92, u),
+             fan_rpm: u < 0.3 ? 0 : Math.round(lerp(700, 3100, u)), fan_max_rpm: 3300,
              clock: lerp(100, 2475, u + j()), vram_used_gb: vramUsed, vram_total_gb: 16,
              vram_pct: vramUsed / 16 * 100 },
       mem: { percent: memPct, used_gb: +(memPct / 100 * 62.7).toFixed(1), total_gb: 62.7 },

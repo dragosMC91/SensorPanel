@@ -7,21 +7,23 @@
    app.js computes both clip-path: polygon(...) strings from the buffer in
    pixel units; null samples become gaps. Heat needs no per-sample colouring:
    each series' gradient runs bottom→top with the production RAMP stops at the
-   matching heights (--s1 cool, --s2 warm, --s3 hot), so whatever part of a
-   line sits in the hot band is drawn red. Each new sample slides the layers
-   in from the right with a 1 s linear transform animation.
+   matching heights (--s1 cool, --s2 warm, --s3 hot, set by app.js from the
+   chart's current range), so whatever part of a line sits in the hot band is
+   drawn red.
+
+   Performance: the panel runs around the clock, and Chrome draws frames only
+   while something animates. So nothing here animates between readings: charts
+   step once per sample instead of sliding, numbers and heat colours snap, the
+   dots jump. One frame per second is all the page asks for. The single
+   exception is the GPU fan, a stepped compositor-only rotation that runs only
+   while the real fan spins (see app.js).
    Text: --c (accent) and --tc (text) warm toward amber/red, as in glass-core.
    ========================================================================== */
 
 @property --c  { syntax: "<color>"; inherits: true; initial-value: rgb(70, 228, 214); }
 @property --tc { syntax: "<color>"; inherits: true; initial-value: rgb(234, 240, 248); }
-@property --p  { syntax: "<number>"; inherits: true; initial-value: 0; }
 
 :root {
-  /* Heat colours fade in step with the numbers easing (EASE_MS in app.js).
-     Each fade repaints its text every frame; at the old 1.2 s, a new reading
-     each second meant fades never stopped under load. */
-  --heat-fade: .45s ease;
   --lite:  "Fira Sans Light", "Fira Sans", "DejaVu Sans", sans-serif;
   --xlite: "Fira Sans ExtraLight", "Fira Sans Light", "Fira Sans", sans-serif;
   --book:  "Fira Sans Book", "Fira Sans", "DejaVu Sans", sans-serif;
@@ -43,8 +45,6 @@
   --out:   rgb(255, 126, 196);
   --warm:  rgb(255, 190, 92);
   --hot:   rgb(255, 84, 92);
-
-  --ease:  cubic-bezier(.25, .8, .3, 1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -79,50 +79,6 @@ html, body {
   mask-image: linear-gradient(180deg, #000, transparent 85%);
 }
 
-/* ===================================================================== bar */
-#bar {
-  position: absolute; left: 18px; right: 18px; top: 5px; height: 30px;
-  display: flex; align-items: center; gap: 16px;
-  font-family: var(--condb); font-size: 18px; color: var(--label);
-  letter-spacing: .02em;
-}
-.brand {
-  display: flex; align-items: center; gap: 9px;
-  font-family: var(--cond); font-size: 22px; letter-spacing: .2em; text-transform: uppercase;
-  color: var(--ink);
-}
-/* the heartbeat: restarts on every sample, so it doubles as a liveness light.
-   Only transform and opacity animate (the halo is a scaled, fading disc rather
-   than a growing box-shadow), so the compositor runs it without repainting. */
-.beat {
-  position: relative; isolation: isolate;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--cpu);
-}
-.beat::after {           /* the halo: 26px disc = the dot + a 9px ring */
-  content: ""; position: absolute; inset: -9px; z-index: -1; border-radius: 50%;
-  background: rgb(70, 228, 214); opacity: 0;
-}
-.beat.on { animation: beat 1s ease-out; }
-.beat.on::after { animation: beat-halo 1s ease-out; }
-@keyframes beat {
-  0%   { transform: scale(1.5); }
-  60%, 100% { transform: scale(1); }
-}
-@keyframes beat-halo {
-  0%   { transform: scale(.31); opacity: .7; }
-  60%, 100% { transform: scale(1); opacity: 0; }
-}
-.sub { color: var(--label); }
-.legend { margin-left: auto; display: flex; gap: 16px; color: var(--label); font-size: 18px; }
-.legend span { display: flex; align-items: center; gap: 6px; }
-.key { width: 18px; height: 4px; border-radius: 2px; }
-.k-load { background: linear-gradient(90deg, var(--cpu), var(--gpu)); }
-.k-temp { background: var(--temp); }
-.k-in   { background: var(--in); }
-.k-out  { background: var(--out); }
-.clock { font-family: var(--cond); font-size: 20px; color: var(--label); letter-spacing: .02em; min-width: 76px; text-align: right; }
-
 /* ================================================================== panels */
 .panel {
   position: absolute;
@@ -132,10 +88,9 @@ html, body {
     inset 0 1px 0 rgba(255, 255, 255, .08),
     inset 0 0 0 1px rgba(210, 225, 255, .065),
     0 18px 40px -20px rgba(0, 0, 0, .8);
-  transition: box-shadow 1.2s ease;
 }
-#cpu   { left: 12px;  top: 40px;  width: 494px; height: 342px; --hue: var(--cpu); }
-#gpu   { left: 518px; top: 40px;  width: 494px; height: 342px; --hue: var(--gpu); }
+#cpu   { left: 12px;  top: 12px;  width: 494px; height: 370px; --hue: var(--cpu); }
+#gpu   { left: 518px; top: 12px;  width: 494px; height: 370px; --hue: var(--gpu); }
 #mem   { left: 12px;  top: 392px; width: 196px; height: 202px; --hue: var(--mem); }
 #net   { left: 220px; top: 392px; width: 232px; height: 202px; }
 #disk  { left: 464px; top: 392px; width: 232px; height: 202px; }
@@ -145,13 +100,26 @@ html, body {
 .unit::before {
   content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 1px;
   background: linear-gradient(90deg, transparent, var(--c), transparent);
-  opacity: .7; transition: --c var(--heat-fade);
+  opacity: .7;
 }
-.unit.hot {
+
+/* Alerts. A panel outlines amber (.warn) or red (.alert) only for a real
+   concern -- a temperature, a nearly full memory or drive -- held for two
+   readings and kept for five after it clears (app.js), so a one-second spike
+   doesn't flash the panel. Full load alone is not an alert: the numbers
+   already warm for that. */
+.panel.warn {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .08),
-    inset 0 0 0 1px rgba(255, 96, 96, .35),
-    inset 0 0 60px -20px rgba(255, 80, 80, .35),
+    inset 0 0 0 1px rgba(255, 190, 92, .32),
+    inset 0 0 50px -24px rgba(255, 170, 80, .30),
+    0 18px 40px -20px rgba(0, 0, 0, .8);
+}
+.panel.alert {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    inset 0 0 0 1.5px rgba(255, 96, 96, .55),
+    inset 0 0 60px -20px rgba(255, 80, 80, .40),
     0 18px 40px -20px rgba(0, 0, 0, .8);
 }
 
@@ -166,7 +134,7 @@ html, body {
 .v { display: inline-block; white-space: nowrap; }
 
 /* missing sensor: a dimmed dash, never a blank */
-.na .v, .pv.na, .na.pv { opacity: .35; }
+.na .v { opacity: .35; }
 .na .u { visibility: hidden; }
 .idle .v { opacity: .5; }
 
@@ -176,61 +144,92 @@ html, body {
   display: flex; align-items: center; gap: 12px;
 }
 .title { font-family: var(--cond); font-size: 28px; letter-spacing: .14em; color: var(--ink); }
-.model { font-family: var(--condb); font-size: 20px; color: var(--label); letter-spacing: 0; }
+.model {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--condb); font-size: 20px; color: var(--label); letter-spacing: 0;
+}
+/* an alert chip that names its sensor needs the room: drop the brand */
+.warn .model .brand, .alert .model .brand { display: none; }
 .chip {
-  margin-left: auto; position: relative;
-  font-family: var(--cond); font-size: 18px; letter-spacing: .06em;
+  flex: none; margin-left: auto; position: relative;
+  font-family: var(--cond); font-size: 18px; letter-spacing: .06em; white-space: nowrap;
   padding: 3px 13px 3px 28px; border-radius: 99px;
   color: var(--tc);
   background: rgba(255, 255, 255, .045);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
-  transition: color .8s;
 }
 .chip::before {
   content: ""; position: absolute; left: 11px; top: 50%;
   width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
   background: var(--c); box-shadow: 0 0 8px 1px var(--c);
 }
+.chip .why { color: var(--ink); opacity: .85; }
+.warn .chip  { background: rgba(255, 170, 80, .10); box-shadow: inset 0 0 0 1px rgba(255, 190, 92, .35); }
+.alert .chip { background: rgba(255, 80, 80, .14); box-shadow: inset 0 0 0 1px rgba(255, 96, 96, .55); }
 .nodata .chip { color: var(--faint); }
 .nodata .chip::before { background: rgba(186, 202, 224, .3); box-shadow: none; }
-.hot .chip::before { animation: blink 1.1s ease-in-out infinite; }
-@keyframes blink { 50% { opacity: .2; } }
+
+/* GPU fan: seven wedge blades on a hub inside a faint shroud. It turns while
+   the real fan spins, faster as it spins faster, and stands still and dims in
+   zero-RPM fan stop. app.js runs the rotation (Web Animations, stepped, on the
+   compositor). */
+.fan {
+  --fanc: rgba(186, 202, 224, .36);
+  flex: none; position: relative; width: 30px; height: 30px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(200, 216, 240, .12);
+}
+.fan.spin { --fanc: color-mix(in srgb, var(--hue) 85%, white 15%); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--hue) 35%, transparent); }
+.fan.na { visibility: hidden; }
+.fan .rotor {
+  position: absolute; inset: 3px; border-radius: 50%;
+  background: repeating-conic-gradient(from 8deg, var(--fanc) 0deg 30deg, transparent 31deg 51.43deg);
+  mask-image: radial-gradient(circle, transparent 0 3.5px, #000 4px 11.5px, transparent 12px);
+  will-change: transform;
+}
+.fan::after {           /* the hub */
+  content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%; background: var(--fanc);
+}
 
 /* ------------------------------------------------------------- unit body */
-.body { position: absolute; left: 14px; right: 14px; top: 46px; height: 170px; }
+.body { position: absolute; left: 14px; right: 14px; top: 48px; height: 196px; }
 
-.hero { position: absolute; left: 0; top: 0; width: 152px; height: 170px; }
-.num { font-family: var(--xlite); line-height: 1; white-space: nowrap; color: var(--tc); transition: --tc var(--heat-fade); }
-.hero .num { font-size: 82px; letter-spacing: -.02em; margin-left: -4px; }
-.hero .num.wide { font-size: 66px; }
-.hero .num .u { font-family: var(--lite); font-size: 28px; margin-left: 3px; vertical-align: 36px; color: var(--label); }
-.hero .num.wide .u { vertical-align: 26px; }
+/* Load and temperature, the two things a glance is for, as equal heroes.
+   Their captions carry the chart legend: a swatch in the load fill's hue and
+   one in the temperature line's white. */
+/* Sized from measured text: 2 digits at 72px are ~103px wide and 3 digits
+   ("100%", "100°C") at 56px ~117px, so the column is 118px and the chart
+   starts 10px after it, wherever the readings go. */
+.hero { position: absolute; left: 0; top: 0; width: 118px; height: 196px; }
+.metric { height: 92px; }
+.metric + .metric { margin-top: 12px; }
+.num { font-family: var(--xlite); line-height: 1; white-space: nowrap; color: var(--tc); }
+.hero .num { font-size: 72px; height: 72px; letter-spacing: -.02em; margin-left: -4px; }
+.hero .num.wide { font-size: 56px; }
+.hero .num .u { font-family: var(--lite); font-size: 26px; margin-left: 3px; vertical-align: 32px; color: var(--label); }
+.hero .num.wide .u { vertical-align: 23px; }
 .cap {
-  margin-top: 0;
+  display: flex; align-items: center; gap: 8px; margin-top: 2px; height: 18px;
   font-family: var(--cond); font-size: 18px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--c); transition: --c var(--heat-fade);
+  color: var(--c);
 }
-.agg { position: absolute; left: 0; right: 0; bottom: -24px; }   /* hangs below the chart, beside the time axis */
-.agg .row { display: flex; align-items: baseline; justify-content: space-between; padding-right: 6px; }
-.agg .k { font-family: var(--cond); font-size: 18px; letter-spacing: .06em; text-transform: uppercase; color: var(--label); }
-.agg .pv { font-family: var(--lite); font-size: 30px; line-height: 32px; color: var(--ink); white-space: nowrap; }
-.agg .ago {
-  font-family: var(--condb); font-size: 17px; line-height: 18px; color: var(--label);
-  height: 18px; margin: 0; padding-right: 6px; text-align: right; white-space: nowrap;
-}
-.agg .row + .ago { border-bottom: 1px solid var(--rule); padding-bottom: 3px; height: 23px; margin-bottom: 3px; }
+.cap .key { width: 16px; height: 4px; border-radius: 2px; background: var(--hue); flex: none; }
+.temp-cap { color: var(--label); }
+.temp-cap .key { background: var(--temp); }
+.nodata .cap { color: var(--faint); }
 
 /* ================================================================== charts */
 .chart { position: absolute; }
 .chart .plot { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 .chart .layers, .chart .glow { position: absolute; inset: 0; }
-/* Each chart keeps its own compositor layer for good: the per-second slide
-   then never repaints it, and repainting a readout never repaints a chart. */
+/* Each chart keeps its own compositor layer, so repainting a readout never
+   repaints a chart and the once-a-second chart update repaints only itself. */
 .chart .layers { will-change: transform; }
 .chart .layers i { position: absolute; inset: 0; clip-path: polygon(0 0, 0 0, 0 0); }
 .chart .glow { filter: drop-shadow(0 0 5px var(--glow, transparent)); }
 
-/* every series: a vertical gradient with heat bands at --s1/--s2/--s3 */
+/* every series: a vertical gradient with heat bands at --s1/--s2/--s3
+   (app.js sets them per series; the defaults keep a series cool) */
 .chart .series {
   --s1: 400%; --s2: 500%; --s3: 600%;
   background: linear-gradient(0deg,
@@ -243,25 +242,14 @@ html, body {
 .chart .s-out { --hue: var(--out); }
 .chart .area.s-out { mask-image: linear-gradient(180deg, rgba(0, 0, 0, .12), #000 90%); }
 
-/* load heat: RAMP.load 70 / 88 / 100 on a 0..100 axis */
-.chart .s-load { --s1: 70%; --s2: 88%; --s3: 100%; }
-/* temp axis is 20..100 °C: RAMP.cpuTemp 58/78/92, RAMP.gpuTemp 58/80/95 */
-#cpu .chart .tline, #cpu-temp-spark .series { --s1: 47.5%; --s2: 72.5%; --s3: 90%; }
-#gpu .chart .tline, #gpu-temp-spark .series { --s1: 47.5%; --s2: 75%;   --s3: 93.75%; }
-/* power: RAMP.power 0.55 / 0.80 / 1.0 of the maximum */
-#cpu-power-spark .series, #gpu-power-spark .series { --s1: 55%; --s2: 80%; --s3: 100%; }
-
-/* "now" dots ride the right edge at the latest value */
+/* "now" dots ride the right edge at the latest value. They jump with each
+   reading (transform only, no transition): an eased move kept Chrome drawing
+   frames for most of every second. */
 .chart .now {
   position: absolute; right: -4px; top: 0;
   width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
   background: var(--dot, var(--hue));
   box-shadow: 0 0 0 3px rgba(5, 7, 10, .9), 0 0 12px 2px var(--dot, var(--hue));
-  /* Only compositor-run properties transition: app.js moves the dot with
-     translateY (no layout), and its heat colour switches with the trace it
-     sits on rather than fading. A 1 s fade of the glow repainted the blur of
-     all 16 dots every frame whenever a reading warmed or cooled. */
-  transition: transform .9s var(--ease), opacity .4s;
   opacity: 0;
 }
 .chart .now.on { opacity: 1; }
@@ -269,36 +257,37 @@ html, body {
 .chart .now.s-in { --hue: var(--in); }
 .chart .now.s-out { --hue: var(--out); }
 
-/* peak marker on the big charts (rides along with the layers) */
+/* peak marker on the big charts, labelled with the peak load */
 .chart .pk {
   position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
   border-radius: 50%; border: 1.5px solid var(--ink); background: rgba(5, 7, 10, .8);
-  opacity: 0; transition: opacity .4s;
+  opacity: 0;
 }
-.chart .pk.on { opacity: .9; }
+.chart .pk.on { opacity: .95; }
 .chart .pk::after {   /* a short hairline down from the peak */
   content: ""; position: absolute; left: 3px; top: 9px; width: 1px; height: 26px;
   background: linear-gradient(rgba(234, 240, 248, .5), transparent);
 }
+.chart .pk .pkv {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-family: var(--condb); font-size: 17px; line-height: 1; white-space: nowrap; color: var(--ink);
+  text-shadow: 0 0 3px #05070a, 0 0 6px #05070a, 0 0 2px #05070a;
+}
+.chart .pk.left .pkv { left: auto; right: 12px; }
 
 /* collecting state: an empty grid with a quiet note */
-.chart.empty::after {
+.chart.empty::after, .chart.void::after {
   content: "collecting"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   font-family: var(--cond); font-size: 18px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--faint);
 }
-.chart.void::after {
-  content: "no data"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-family: var(--cond); font-size: 18px; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--faint);
-}
+.chart.void::after { content: "no data"; }
 .chart.spark.empty::after, .chart.mini.empty::after,
 .chart.spark.void::after, .chart.mini.void::after { content: none; }
-.nodata .cap { color: var(--faint); }
 
 /* ------------------------------------------------------------- big chart */
 .chart.big {
-  left: 164px; right: 36px; top: 0; height: 170px;
+  left: 128px; right: 30px; top: 0; height: 196px;   /* right: room for "100°" on the axis */
   border-radius: 10px;
   background:
     linear-gradient(90deg, transparent calc(50% - .5px), var(--rule) calc(50% - .5px), var(--rule) calc(50% + .5px), transparent calc(50% + .5px)),
@@ -319,32 +308,53 @@ html, body {
 }
 .chart .ax.l { left: 6px; margin-bottom: 3px; color: color-mix(in srgb, var(--hue) 75%, white 10%); z-index: 2;
                text-shadow: 0 0 3px #05070a, 0 0 6px #05070a, 0 0 2px #05070a; }
-.chart .ax.r { right: -35px; margin-bottom: -8px; color: rgba(236, 240, 250, .7); }
+/* the temperature scale zooms to the window's range (app.js), so the line
+   shows every degree of drift and these labels read it off exactly */
+.chart .ax.r { left: calc(100% + 5px); margin-bottom: -8px; color: rgba(236, 240, 250, .78); }
 
 .taxis {
-  position: absolute; left: 180px; right: 52px; top: 219px; height: 20px;
+  position: absolute; left: 144px; right: 46px; top: 247px; height: 20px;   /* chart edges + 2px */
   display: flex; justify-content: space-between;
   font-family: var(--condb); font-size: 17px; line-height: 20px; letter-spacing: 0; color: var(--label);
 }
 
 /* ------------------------------------------------------------- stat cells */
 .stats {
-  position: absolute; left: 10px; right: 10px; top: 244px; bottom: 10px;
-  display: grid; grid-template-columns: 104fr 120fr 118fr 114fr; gap: 6px;
+  position: absolute; left: 10px; right: 10px; top: 272px; bottom: 10px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
 }
 .stat {
-  position: relative; padding: 6px 7px 0;
+  position: relative; padding: 6px 7px 0; min-width: 0;
   border-radius: 10px;
   background: rgba(0, 0, 0, .16);
   box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
 }
 .stat .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 5px; font-size: 17px; line-height: 20px; letter-spacing: .02em; }
 .stat .note { font-family: var(--condb); font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--tc); opacity: .9; }
-.stat .val { margin-top: 1px; font-family: var(--lite); font-size: 31px; line-height: 34px; color: var(--tc); white-space: nowrap; transition: --tc var(--heat-fade); }
+.stat .val { margin-top: 1px; font-family: var(--lite); font-size: 31px; line-height: 34px; color: var(--tc); white-space: nowrap; }
 .stat .val .u { font-size: 18px; margin-left: 3px; }
 .chart.spark { left: 7px; right: 7px; bottom: 6px; height: 17px; border-bottom: 1px solid var(--rule); }
 .chart.spark .area { opacity: .26; }
 .chart.spark .now { width: 6px; height: 6px; margin-top: -3px; right: -3px; box-shadow: 0 0 6px 1px var(--hue); }
+
+/* per-core load: one bar per physical core, grouped by shared L3 (CCX) */
+.stat.cores { grid-column: span 2; }
+.bars {
+  position: absolute; left: 9px; right: 9px; top: 31px; bottom: 7px;
+  display: flex; align-items: stretch; gap: 10px;
+}
+.bars .grp { flex: 1; display: flex; gap: 4px; }
+.bars .core {
+  flex: 1; position: relative; overflow: hidden; border-radius: 3px;
+  background: rgba(200, 216, 240, .07);
+}
+.bars .core b {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
+  transform-origin: bottom; transform: scaleY(0);
+  background: var(--bc, var(--hue));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--bc, var(--hue)) 45%, transparent);
+}
+.bars.na .core b { visibility: hidden; }
 
 /* ================================================================ small panels */
 .shead {
@@ -365,7 +375,6 @@ html, body {
     rgba(0, 0, 0, .2);
   box-shadow: inset 0 0 0 1px rgba(210, 225, 255, .05);
 }
-#mem-chart .series { --s1: 70%; --s2: 88%; --s3: 100%; }
 
 /* network / disk: incoming above a centre axis, outgoing mirrored below */
 .io .pair { position: absolute; left: 12px; right: 12px; top: 38px; display: flex; flex-direction: column; gap: 0; }
@@ -396,7 +405,7 @@ html, body {
 
 /* storage */
 .board { display: flex; align-items: baseline; gap: 8px; }
-.bval { font-family: var(--lite); font-size: 30px; line-height: 26px; color: var(--tc); transition: --tc var(--heat-fade); white-space: nowrap; }
+.bval { font-family: var(--lite); font-size: 30px; line-height: 26px; color: var(--tc); white-space: nowrap; }
 .bval .u { font-size: 18px; margin-left: 2px; }
 .drives {
   position: absolute; left: 14px; right: 13px; top: 46px; bottom: 9px;
@@ -417,30 +426,28 @@ html, body {
 }
 .drive .bar i {
   position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px;
-  width: calc(var(--p) * 1%);
+  width: calc(var(--p, 0) * 1%);
   background: var(--c);
   box-shadow: 0 0 6px color-mix(in srgb, var(--c) 60%, transparent);
-  transition: --p 1s var(--ease), --c var(--heat-fade);
 }
 .drive .bar.na i { opacity: 0; }
 .drive .dpct, .drive .dtemp {
   font-family: var(--lite); font-size: 29px; line-height: 30px; text-align: right; white-space: nowrap;
-  color: var(--tc); transition: --tc var(--heat-fade);
+  color: var(--tc);
 }
 .drive .u { font-size: 18px; margin-left: 1px; }
 
 /* =================================================================== stale
-   No data for 5 s: everything greys out, the charts stop sliding and a note
-   says why, so nobody trusts a frozen trace. */
+   No data for 5 s: everything greys out, the charts and the fan stop and a
+   note says why, so nobody trusts a frozen trace. */
 #stale-note {
-  position: absolute; left: 50%; top: 210px; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 200px; transform: translate(-50%, -50%);
   font-family: var(--cond); font-size: 24px; letter-spacing: .14em; text-transform: uppercase;
   color: rgba(255, 214, 170, .95);
   padding: 10px 24px 10px 28px; border-radius: 99px;
   background: rgba(12, 12, 14, .94);
   box-shadow: inset 0 0 0 1px rgba(255, 200, 150, .3), 0 10px 40px rgba(0, 0, 0, .6);
-  opacity: 0; transition: opacity .8s; z-index: 5;
+  opacity: 0; z-index: 5;
 }
 body.stale #stage > :not(#stale-note) { filter: grayscale(.85) brightness(.6); }
 body.stale #stale-note { opacity: 1; }
-body.stale .beat, body.stale .beat::after, body.stale .chip::before { animation-play-state: paused; }

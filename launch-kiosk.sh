@@ -46,7 +46,11 @@ exec "$CHROME" \
   --disable-infobars \
   --noerrdialogs \
   --hide-crash-restore-bubble \
-  --disable-features=TranslateUI,Translate \
+  --disable-features=TranslateUI,Translate,MediaRouter,OptimizationHints \
+  --disable-extensions \
+  --disable-component-extensions-with-background-pages \
+  --disable-background-networking \
+  --disable-sync \
   --autoplay-policy=no-user-gesture-required \
   --check-for-update-interval=31536000 \
   --overscroll-history-navigation=0
